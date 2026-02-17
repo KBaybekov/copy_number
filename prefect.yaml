@@ -1,13 +1,20 @@
+# ИСПОЛЬЗОВАТЬ В БУДУЩЕМ YAML ALIASES
+
 name: cyp2d6-nanopore
 prefect-version: 3.6.16
 
 # preparation
 build:
+- prefect.deployments.steps.run_shell_script:
+    id: get-commit-hash
+    script: git rev-parse --short HEAD
+    stream_output: false
 - prefect_docker.deployments.steps.build_docker_image:
     id: build-test-image
     requires: prefect-docker>=0.3.1
     image_name: cyp2d6/test
-    tag: 1.0.0
+    image_tag: "{{ get-commit-hash.stdout }}"
+    #tag: 1.0.0
     dockerfile: auto
     nocache: true
     platform: linux/amd64
@@ -22,6 +29,12 @@ push:
 pull:
   - prefect.deployments.steps.set_working_directory:
       directory: /opt/prefect
+  - prefect.deployments.steps.git_clone:
+      id: clone-step
+      repository: https://github.com/KBaybekov/copy_number.git
+  - prefect.deployments.steps.pip_install_requirements:
+    directory: "{{ clone-step.directory }}"
+    requirements_file: requirements.txt
 
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
