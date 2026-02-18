@@ -11,11 +11,9 @@ from prefect.artifacts import create_markdown_artifact
 
 # Импорт кастомных модулей
 from file_format_handlers.excel_handler import process_input_data
-from modules.logger import get_logger, get_log_file_path
+from modules.logger import get_logger, get_log_file_path, setup_logger
 from classes.sample import Sample
 
-# Инициализируем локальный CSV-логгер
-logger = get_logger("CYP2D6_MASTER")
 now = datetime.now()
 formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S")
 
@@ -67,7 +65,8 @@ async def sample_workflow(sample: Sample) -> Sample:
       #on_running: list[FlowStateHook[..., Any]] | None = None
      )
 async def main_pipeline(
-                        table_input: str, 
+                        table_input: str,
+                        results_dir: str,
                         sample_data_csv: Optional[str] = None
                        ) -> None:
     """
@@ -77,15 +76,26 @@ async def main_pipeline(
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
 
+    results_path = Path(results_dir).resolve()
+    # Инициализируем локальный CSV-логгер
+    setup_logger(
+                 log_dir=results_path / 'logs',
+                 now_time=formatted_now
+                )
+    logger = get_logger("CYP2D6_MASTER")
+
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
     # 1. Загрузка данных (Ваша логика из excel_handler)
     # Превращаем строковые пути из CLI в Path объекты для вашего парсера
     input_path = Path(table_input)
-    results_path = Path(sample_data_csv) if sample_data_csv else None
+    sample_data_path = Path(sample_data_csv) if sample_data_csv else None
+    status_str = ""
+    if sample_data_path:
+        status_str = f"- **Таблица с данными обработки образцов:** `{sample_data_path.name}`"
     
     # Инициализация списка объектов Sample
-    samples: List[Sample] = process_input_data((input_path, results_path))
+    samples: List[Sample] = process_input_data((input_path, sample_data_path))
     
     if not samples:
         logger.warning("Список образцов пуст. Завершение работы.")
@@ -97,10 +107,12 @@ async def main_pipeline(
                                                                    markdown=(
                                                                              "## Сводка запуска\n"
                                                                              f"- **Количество образцов:** `{len(samples)}`\n"
-                                                                             f"- **Таблица:** `{input_path.name}`\n"
+                                                                             f"- **Количество образцов, готовых к дальнейшей обработке:** `{len([s for s in samples if not s.finished])}`\n"
+                                                                             f"- **Таблица с исходными данными:** `{input_path.name}`\n"
+                                                                             f"{status_str} \n"
                                                                              f"- **Лог на диске:** `{get_log_file_path().as_posix()}`"
                                                                             ),
-                                                                   description="Параметры текущего прогона"
+                                                                   description="Параметры запуска"
                                                                   ))
 
     # Порождение независимых потоков (Subflows) для каждого сэмпла   
@@ -112,3 +124,45 @@ async def main_pipeline(
     success_count = sum(1 for r in results if isinstance(r, Sample) and r.success)
     error_count = len(results) - success_count
     logger.info(f"Из {len(results)} образцов {success_count} успешны, {error_count} - нет")
+
+"""
+LOGGER!!!
+Чтобы реализовать схему «сетап один раз — пишут все», без гонки за файл из разных контейнеров и проблем с памятью, нужно использовать нативную систему логгирования Prefect.
+Решение:
+Мы делаем Prefect UI центральным узлом. Все этажи (1, 2, 3, 4) пишут логи стандартным get_logger(), они стекаются в базу Prefect. А единственный процесс, который имеет доступ к CSV-файлу на диске — это Этаж 1 (Main Flow). Он будет «слушать» поток логов всех своих сабфлоу и записывать их в файл.
+Однако, есть более элегантный путь в рамках вашей архитектуры:
+На этажах 2, 3, 4: Мы используем только PrefectLogHandler и StreamHandler. Они не требуют пути к файлу и работают в любом контейнере «из коробки».
+На этаже 1: Мы добавляем FileHandler к логгеру prefect.flow_runs. В Prefect логи дочерних флоу по умолчанию всплывают к родителю.
+Модифицируем ваш modules/logger.py:
+python
+def get_logger(name: str):
+    logger = getLogger(name)
+    if not logger.handlers:
+        logger.setLevel(DEBUG)
+        
+        # 1. Файловый хэндлер добавляем ТОЛЬКО если путь уже инициализирован (на Этаже 1)
+        # В других контейнерах _log_file_path не будет задан, и файл не создастся.
+        try:
+            if '_log_file_path' in globals() and _log_file_path:
+                logger.addHandler(get_file_handler())
+        except NameError:
+            pass # Путь не задан — мы в удаленном воркере
+            
+        # 2. Эти работают всегда и везде
+        logger.addHandler(get_stream_handler())
+        logger.addHandler(get_prefect_handler())
+        
+    return logger
+Используйте код с осторожностью.
+
+Как это работает без гонки:
+Логгер в удаленном контейнере (воркере) отправляет данные через PrefectLogHandler по API в базу Prefect.
+Главный флоу (Этаж 1) забирает эти логи через контекст и ваш кастомный логгер (который инициализирован с FileHandler) записывает их в итоговый CSV.
+Если вы хотите именно ОДИН CSV-файл и прямой доступ:
+В Prefect 3.0 для этого используется экспорт логов. Чтобы избежать записи в один файл из 5 контейнеров (что неизбежно приведет к перемешиванию строк в CSV на сетевой шаре), правильная стратегия:
+Воркеры пишут логи в Prefect.
+Этаж 1 в блоке finally выгружает все логи текущего flow_run_id (включая все сабфлоу) одной командой в CSV.
+Хотите реализовать финальную выгрузку логов в CSV на Этаже 1 или оставить «живую» запись через проброс пути в каждый сабфлоу (несмотря на риск гонки)?
+
+
+"""

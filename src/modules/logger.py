@@ -17,13 +17,6 @@ from datetime import datetime
 from prefect.logging import get_run_logger
 from prefect.context import FlowRunContext, TaskRunContext
 
-
-now = datetime.now()
-formatted_time = now.strftime("%d-%m-%Y_%H:%M:%S")
-
-log_file = Path(f'./logs/log_{formatted_time}.csv').resolve()
-log_file.parent.mkdir(exist_ok=True)
-
 CSV_COLUMNS = ["Day", "Month", "Year", "Hour", "Minutes", "Seconds", "Microseconds", "Level", "Logger", "Location", "Message"]
 
 class PrefectLogHandler(Handler):
@@ -66,12 +59,24 @@ console_fmt = Formatter(
     datefmt="%d.%m.%Y %H:%M:%S",
 )
 
+_log_file_path: Path
+
+def setup_logger(
+                 log_dir: Path,
+                 now_time:str
+                ) -> None:
+    """Инициализирует путь к лог-файлу ОДИН РАЗ за прогон."""
+    global _log_file_path
+    log_dir.mkdir(parents=True, exist_ok=True)
+    _log_file_path = log_dir / f"log_{now_time}.csv"
+    return None
+
 def get_file_handler() -> FileHandler:
-    if not log_file.exists():
-        with open(log_file, 'w', encoding='utf-8', newline='') as f:
+    if not _log_file_path.exists():
+        with open(_log_file_path, 'w', encoding='utf-8', newline='') as f:
             writer = csv_writer(f, quoting=QUOTE_ALL)
             writer.writerow(CSV_COLUMNS)
-    handler = FileHandler(log_file, encoding='utf-8')
+    handler = FileHandler(_log_file_path, encoding='utf-8')
     handler.setLevel(DEBUG)
     handler.setFormatter(CsvFormatter())
     return handler
@@ -100,4 +105,4 @@ def get_logger(name: str):
     return logger
 
 def get_log_file_path() -> Path:
-    return log_file
+    return _log_file_path or Path("./logs/default.csv")
