@@ -47,3 +47,6 @@ deployments:
     # Используем результат первой сборки
     job_variables:
       image: "{{ build-image.image }}"
+    parameters:
+      table_input: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/copy_number/private/ont_samples.xlsx
+      sample_data_csv: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv
