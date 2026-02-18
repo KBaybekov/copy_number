@@ -32,9 +32,9 @@ pull:
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/KBaybekov/copy_number.git
-  - prefect.deployments.steps.pip_install_requirements:
-    directory: "{{ clone-step.directory }}"
-    requirements_file: requirements.txt
+  #- prefect.deployments.steps.pip_install_requirements:
+  #  directory: "{{ clone-step.directory }}"
+  #  requirements_file: requirements.txt
 
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
