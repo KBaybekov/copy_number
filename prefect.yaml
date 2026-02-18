@@ -1,6 +1,6 @@
 # ИСПОЛЬЗОВАТЬ В БУДУЩЕМ YAML ALIASES
 
-name: cyp2d6-nanopore
+name: cyp2d6-copy
 prefect-version: 3.6.16
 
 # preparation
@@ -10,11 +10,10 @@ build:
     script: git rev-parse --short HEAD
     stream_output: false
 - prefect_docker.deployments.steps.build_docker_image:
-    id: build-test-image
+    id: build-image
     requires: prefect-docker>=0.3.1
-    image_name: kbaybekov/cyp2d6-test
+    image_name: kbaybekov/cyp2d6-copy
     tag: "{{ get-commit-hash.stdout }}"
-    #tag: 1.0.0
     dockerfile: auto
     nocache: true
     platform: linux/amd64
@@ -22,8 +21,8 @@ build:
 push:
 - prefect_docker.deployments.steps.push_docker_image:
     requires: prefect-docker>=0.3.1
-    image_name: '{{ build-test-image.image_name }}'
-    tag: '{{ build-test-image.tag }}'
+    image_name: '{{ build-image.image_name }}'
+    tag: '{{ build-image.tag }}'
 
 # runtime steps
 pull:
@@ -32,22 +31,19 @@ pull:
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/KBaybekov/copy_number.git
-  #- prefect.deployments.steps.pip_install_requirements:
-  #  directory: "{{ clone-step.directory }}"
-  #  requirements_file: requirements.txt
 
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
-  - name: Test-Flow
-    version: '{{ build-test-image.tag }}'
-    tags: ['test']
-    description: "Test flow for checking consistence of Infra"
+  - name: CYP2D6_COPY
+    version: '{{ build-image.tag }}'
+    tags: ['nanopore', 'nextflow']
+    description: "Flow for processing SVs & CNVs in CYP2D6 gene within ONT data"
     schedules: []
-    flow_name: "Test-Flow"
-    entrypoint: src/test.py:check_file
+    flow_name: "CYP2D6_COPY-Flow"
+    entrypoint: src/cyp2d6_prefect.py:main_pipeline
     work_pool:
       name: nanopore_docker_pool
       work_queue_name: cpu_nodes
     # Используем результат первой сборки
     job_variables:
-      image: "{{ build-test-image.image }}"
+      image: "{{ build-image.image }}"

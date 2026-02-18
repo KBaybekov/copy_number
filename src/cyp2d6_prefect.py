@@ -1,13 +1,5 @@
 from __future__ import annotations
 
-import os
-import sys
-from pathlib import Path
-
-# --- ОТЛАДКА ДЛЯ ПЕРВОГО ЭТАЖА ---
-if os.path.exists("/app"):
-    sys.path.append("/app")
-
 import asyncio
 from datetime import datetime
 from pathlib import Path
@@ -120,34 +112,3 @@ async def main_pipeline(
     success_count = sum(1 for r in results if isinstance(r, Sample) and r.success)
     error_count = len(results) - success_count
     logger.info(f"Из {len(results)} образцов {success_count} успешны, {error_count} - нет")
-
-
-if __name__ == "__main__":
-    script_path = Path(__file__).resolve().as_posix()
-    project_root = Path(__file__).resolve().parents[1].as_posix()
-    #print(project_root)
-    # Для локальной отладки или регистрации деплоймента
-    # В Prefect 3.0 вызов @flow функции запускает её движок.
-    main_pipeline.deploy(
-        name="CYP2D6-Production-Deploy",
-        work_pool_name="nanopore_docker_pool",
-        work_queue_name='cpu_nodes',
-        image="prefecthq/prefect:3.6.16-python3.13",
-        build=False, # У нас уже есть готовый образ
-        push=False,
-        parameters={
-                    'table_input': '/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/copy_number/data/ont_samples.xlsx',
-                    'sample_data_csv': '/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv'
-                   },
-        job_variables={
-            "volumes": [
-                f"{script_path}:/opt/prefect/cyp2d6_prefect.py",
-                f"{project_root}:/app"
-            ],
-            "env": {
-                "EXTRA_PIP_PACKAGES": "pandas openpyxl prefect-shell",
-                "PYTHONPATH": "/app/src",
-                "PYTHONDONTWRITEBYTECODE": "1"
-            }
-        }
-    )
