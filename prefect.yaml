@@ -42,7 +42,7 @@ deployments:
     version: '{{ build-test-image.tag }}'
     tags: ['test']
     description: "Test flow for checking consistence of Infra"
-    schedule: {}
+    schedule: null
     flow_name: "Test-Flow"
     entrypoint: src/test.py:check_file
     work_pool:
