@@ -27,7 +27,7 @@ push:
 # runtime steps
 pull:
   - prefect.deployments.steps.set_working_directory:
-      directory: /opt/prefect/copy_number
+      directory: /opt/prefect/
   - prefect.deployments.steps.git_clone:
       id: clone-step
       repository: https://github.com/KBaybekov/copy_number.git
