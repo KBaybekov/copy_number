@@ -9,6 +9,8 @@ from os import getenv
 
 LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
 SERVER_IP = getenv('SERVER_IP', 'localhost')
+if SERVER_IP != 'localhost':
+    SERVER_IP = f"http://{SERVER_IP}"
 
 from os import environ
 print(sorted(environ.keys()))
@@ -92,12 +94,11 @@ def get_logger():
         
     create_link_artifact(
                             key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
-                            link=f"{SERVER_IP}://{log_filepath.resolve().as_posix()}",  # преобразуем путь в file:// URL
+                            link=f"{SERVER_IP}/{log_filepath.resolve().as_posix()}",  # преобразуем путь в file:// URL
                             link_text="📄 Открыть лог-файл",
                             description=f"""# Логи запуска {ctx.flow.name}
 
-                    - 
-                    ID запуска: `{ctx.flow_run.id}`
+                    - ID запуска: `{ctx.flow_run.id}`
                     - Дата: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
                     - Формат: TSV
 
