@@ -46,7 +46,7 @@ def setup_custom_logger(log_folder: Path):
     # 2. Но стандартному хэндлеру Prefect (который шлет в UI) форсим INFO
     if isinstance(logger, logging.Logger):
         for h in logger.handlers:
-            if h.__class__.__name__ == 'ORMLogHandler': # Внутренний хэндлер Prefect
+            if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect
                 h.setLevel(logging.INFO)
 
     # определяем контекст флоу
