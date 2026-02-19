@@ -6,7 +6,19 @@ from prefect.context import FlowRunContext
 from datetime import datetime
 from pathlib import Path
 
-TSV_COLUMNS = ["Day", "Month", "Year", "Hour", "Minutes", "Seconds", "Microseconds", "Level", "Logger", "Location", "Message"]
+TSV_COLUMNS = [
+               "Day",
+               "Month",
+               "Year",
+               "Hour",
+               "Minutes",
+               "Seconds",
+               "Microseconds",
+               "Flow_ID",
+               "Level",
+               "Logger",
+               "Location","Message"
+              ]
 
 class TsvFormatter(logging.Formatter):
     """Быстрый TSV форматтер без лишних объектов."""
@@ -20,8 +32,8 @@ class TsvFormatter(logging.Formatter):
         parts = [
             dt.strftime("%d"), dt.strftime("%m"), dt.strftime("%Y"),
             dt.strftime("%H"), dt.strftime("%M"), dt.strftime("%S"),
-            dt.strftime("%f"), record.levelname, record.name,
-            f"{record.funcName}:{record.lineno}", f'"{msg}"'
+            dt.strftime("%f"), self.flow_run_id, record.levelname,
+            record.name, f"{record.funcName}:{record.lineno}", f'"{msg}"'
         ]
         return "\t".join(parts)
 
@@ -47,7 +59,7 @@ def setup_custom_logger(log_folder: Path):
     log_dir.mkdir(parents=True, exist_ok=True)
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
     # Получаем корневой логгер Prefect
-    logger = logging.getLogger("prefect.flow_runs")
+    logger = logging.getLogger()
     # Защита от дублирования хэндлеров в рамках одного процесса
     if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) for h in logger.handlers):
         if not log_filepath.exists():
