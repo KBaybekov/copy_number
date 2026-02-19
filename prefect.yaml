@@ -35,36 +35,40 @@ pull:
       directory: "{{ clone-step.directory }}" # `clone-step` is a user-provided `id` field
       requirements_file: requirements.txt
 
+x-deployment-defaults: &deployment-defaults
+  version: '{{ build-image.tag }}'
+  schedules: []
+  tags: ['nanopore', 'cyp2d6', 'cpu']
+  work_pool:
+    name: nanopore_docker_pool
+    work_queue_name: cpu_nodes
+  job_variables:
+    image: "{{ build-image.image }}"
+
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
-  - name: CYP2D6_COPY
-    version: '{{ build-image.tag }}'
-    tags: ['nanopore', 'cyp2d6']
-    description: "Flow for processing SVs & CNVs in CYP2D6 gene within ONT data"
-    schedules: []
-    flow_name: "CYP2D6_COPY-Flow"
+  - name: CYP2D6:main_pipeline
+    <<: *deployment-defaults 
+    description: "Main Flow for processing SVs & CNVs in CYP2D6 gene within ONT data"
+    flow_name: "CYP2D6_main_pipeline"
     entrypoint: src/cyp2d6_prefect.py:main_pipeline
-    work_pool:
-      name: nanopore_docker_pool
-      work_queue_name: cpu_nodes
-    # Используем результат первой сборки
-    job_variables:
-      image: "{{ build-image.image }}"
     parameters:
-      log_folder: /mnt/cephfs8_rw/nanopore2/logs
       table_input: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/copy_number/private/ont_samples.xlsx
       sample_data_csv: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv
 
+  - name: CYP2D6:sample_workflow
+    <<: *deployment-defaults
+    description: "Flow for processing sample"
+    flow_name: "CYP2D6_sample_workflow"
+    entrypoint: src/core/sample_workflow.py:sample_workflow
+    concurrency_limit:
+      limit: 50
+      collision_strategy: ENQUEUE
+      grace_period_seconds: 120 # время, за которое флоу должен развернуться и стартовать
+
+
   - name: test_logsss
-    version: '{{ build-image.tag }}'
-    tags: ['nanopore', 'cyp2d6']
+    <<: *deployment-defaults
     description: "test flow for logs"
-    schedules: []
     flow_name: "CYP2D6_COPY-Flow"
     entrypoint: src/modules/logger.py:some_flow
-    work_pool:
-      name: nanopore_docker_pool
-      work_queue_name: cpu_nodes
-    # Используем результат первой сборки
-    job_variables:
-      image: "{{ build-image.image }}"

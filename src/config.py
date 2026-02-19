@@ -1,6 +1,7 @@
 from asyncio import Semaphore
 from pathlib import Path
-
+from typing import Dict, Callable
+from classes.sample import Sample
 
 RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/')
 SAMPLE_CSV = 'CYP2D6_samples.tsv'
@@ -56,3 +57,12 @@ STAGE_DEPENDENCIES = {
                                    'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT}
                                   }
                      }
+
+
+# Реестр условий входа для этапов
+STAGE_CONDITIONS: Dict[str, Callable[[Sample], bool]] = {
+                                                         'alignment': lambda s: all([
+                                                                                     len(s.fq_folders) != len(s.bams),
+                                                                                     s.stage_statuses.get('basecalling') == "OK"
+                                                                                    ])
+                                                        }
