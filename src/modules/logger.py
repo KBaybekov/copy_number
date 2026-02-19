@@ -107,7 +107,7 @@ def setup_custom_logger(log_folder: Path):
         handler = logging.FileHandler(log_filepath, encoding='utf-8')
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
-        real_logger.addHandler(handler)
+        logger.logger.addHandler(handler)
     
     return logger
 
