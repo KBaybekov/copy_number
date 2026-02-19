@@ -96,7 +96,7 @@ def setup_custom_logger(log_folder: Path):
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
     real_logger = logger.logger if hasattr(logger, 'logger') else logger
 
-    print(logger.handlers)
+    print(logger.logger.handlers)
     
     # 6. Защита от дублирования файлового обработчика
     if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
