@@ -113,13 +113,12 @@ def setup_custom_logger(log_folder: Path):
         console_handler = PrefectConsoleHandler(level=logging.INFO)
         logger.logger.addHandler(console_handler)
 
-    print(logger.logger.handlers)
     for handler in logger.logger.handlers:
         if isinstance(handler, APILogHandler):
             handler.setLevel(logging.INFO)
         if isinstance(handler, PrefectConsoleHandler):
             handler.setLevel(logging.INFO)
-    
+    print(logger.logger.handlers)
     return logger
 
 @flow(name="test-log")
