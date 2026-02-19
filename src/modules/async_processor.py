@@ -7,7 +7,7 @@ from modules.dataflow_stages import run_stage, STAGE_CONDITIONS
 from modules.logger import get_logger
 from config import AVAILABLE_GPU_IDS, STAGE_DEPENDENCIES
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 # id для процессов на GPU
 id_lock = asyncio.Lock()

@@ -1,6 +1,6 @@
 from logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 logger.info("test")
 logger.warning("warning")

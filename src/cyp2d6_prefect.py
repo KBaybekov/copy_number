@@ -11,8 +11,11 @@ from prefect.artifacts import create_markdown_artifact
 
 # Импорт кастомных модулей
 from file_format_handlers.excel_handler import process_input_data
-from modules.logger import get_logger, get_log_file_path, setup_logger
+from modules.logger import setup_custom_logger
 from classes.sample import Sample
+
+# Создаём логгер на основе
+logger = setup_custom_logger()
 
 now = datetime.now()
 formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S")
@@ -76,13 +79,7 @@ async def main_pipeline(
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
 
-    results_path = Path(results_dir).resolve()
-    # Инициализируем локальный CSV-логгер
-    setup_logger(
-                 log_dir=results_path / 'logs',
-                 now_time=formatted_now
-                )
-    logger = get_logger("CYP2D6_MASTER")
+    
 
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 

@@ -14,6 +14,6 @@ def get_args() -> Tuple[Path, Optional[Path]]:
     args = parser().parse_args()
     input_xlsx = Path(args.table_input).resolve()
     sample_data = Path(args.sample_data).resolve() if args.sample_data else None
-    logger = get_logger(__name__)
+    logger = get_logger()
     logger.info(f"Args: table_input='{input_xlsx.as_posix()}'")
     return (input_xlsx, sample_data)

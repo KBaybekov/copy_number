@@ -9,7 +9,7 @@ from inspect import stack
 from threading import RLock
 
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 
 def get_files_sizes_in_Gb(

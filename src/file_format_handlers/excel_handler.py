@@ -5,7 +5,7 @@ from modules.logger import get_logger
 from classes.sample import Sample
 
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def process_input_data(sample_data:Tuple[Path, Optional[Path]]) -> List[Sample]:
     samples = []

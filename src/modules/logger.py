@@ -2,8 +2,12 @@ import logging
 from prefect import flow, get_run_logger
 from prefect.context import FlowRunContext
 from prefect.logging.handlers import APILogHandler
+from prefect.artifacts import create_link_artifact
 from datetime import datetime
 from pathlib import Path
+from os import getenv
+
+LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
 
 TSV_COLUMNS = [
                "Day",
@@ -36,7 +40,7 @@ class TsvFormatter(logging.Formatter):
         ]
         return "\t".join(parts)
 
-def setup_custom_logger(log_folder: Path):
+def get_logger():
     logger = get_run_logger()  # адаптер Prefect
     
     # 1. Разрешаем логгеру флоу глотать DEBUG
@@ -49,7 +53,7 @@ def setup_custom_logger(log_folder: Path):
     
     # 4. Формируем путь к файлу
     now = datetime.now()
-    log_dir = log_folder / now.strftime("%d_%m_%Y")
+    log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv"
     
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
@@ -81,11 +85,26 @@ def setup_custom_logger(log_folder: Path):
         if isinstance(handler, PrefectConsoleHandler):
             handler.setLevel(logging.INFO)
     print(logger.logger.handlers)"""
+        
+    create_link_artifact(
+                            key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
+                            link=log_filepath.absolute().as_uri(),  # преобразуем путь в file:// URL
+                            link_text="📄 Открыть лог-файл",
+                            description=f"""# Логи запуска {ctx.flow.name}
+
+                    - **ID запуска**: `{ctx.flow_run.id}`
+                    - **Дата**: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
+                    - **Формат**: TSV (таб-разделители)
+
+                    Файл содержит полные логи уровня DEBUG и выше.
+                    """,
+                        )
+
     return logger
 
 @flow(name="test-log")
 def some_flow():
-    logger = setup_custom_logger(Path("/mnt/cephfs8_rw/nanopore2/logs"))
+    logger = get_logger()
     logger.debug("Тестовое сообщение debug")
     logger.info("Тестовое сообщение info")
     logger.warning("Тестовое сообщение warning")

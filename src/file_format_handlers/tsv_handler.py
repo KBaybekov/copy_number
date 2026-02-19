@@ -10,7 +10,7 @@ from threading import Lock
 
 CSV_WRITE_LOCK = Lock()
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def write_sample_data(sample_data:dict) -> None:
     sample_csv = RES_FOLDER / SAMPLE_CSV

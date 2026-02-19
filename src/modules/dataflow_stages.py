@@ -15,7 +15,7 @@ from config import (
                     ALIGNMENT_TIMEOUT
                    )
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def form_cmd(cmd_template: list[str], data2replace: dict) -> list:
     formed_cmd = []

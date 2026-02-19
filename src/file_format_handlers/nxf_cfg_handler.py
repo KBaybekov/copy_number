@@ -5,7 +5,7 @@ from . import is_file_exists_n_not_empty
 from config import ALIGNMENT_CONFIG_TEMPLATE
 from modules.logger import get_logger
 
-logger = get_logger(__name__)
+logger = get_logger()
 
 def form_nxf_cfg(stage:str, data:dict, output_filepath:Path) -> Optional[Path]:
     """
