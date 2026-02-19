@@ -115,10 +115,3 @@ def some_flow():
     logger.warning("Тестовое сообщение warning")
     logger.error("Тестовое сообщение error")
     logger.critical("Тестовое сообщение critical")
-
-if __name__ == "__main__":
-    some_flow.deploy(
-                     name='Test-Logs',
-                     work_pool_name='nanopore_docker_pool',
-                     work_queue_name='cpu_nodes'
-                    )

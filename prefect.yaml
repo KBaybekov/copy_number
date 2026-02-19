@@ -54,3 +54,17 @@ deployments:
       log_folder: /mnt/cephfs8_rw/nanopore2/logs
       table_input: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/copy_number/private/ont_samples.xlsx
       sample_data_csv: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv
+
+  - name: test_logsss
+    version: '{{ build-image.tag }}'
+    tags: ['nanopore', 'cyp2d6']
+    description: "test flow for logs"
+    schedules: []
+    flow_name: "CYP2D6_COPY-Flow"
+    entrypoint: src/modules/logger.py:some_flow
+    work_pool:
+      name: nanopore_docker_pool
+      work_queue_name: cpu_nodes
+    # Используем результат первой сборки
+    job_variables:
+      image: "{{ build-image.image }}"
