@@ -80,18 +80,7 @@ def setup_custom_logger(log_folder: Path):
     logger = get_run_logger()  # адаптер Prefect
     
     # 1. Разрешаем логгеру флоу глотать DEBUG
-    logger.setLevel(logging.DEBUG)
-    
-    # 2. Понижаем уровень APILogHandler в корневом логгере до INFO
-    root_logger = logging.getLogger()
-    root_logger.setLevel(logging.DEBUG)  # чтобы корень пропускал все уровни
-    # 2. Перебираем ВСЕ существующие логгеры и для каждого обработчика типа APILogHandler ставим уровень INFO
-    for logger_name in list(logging.Logger.manager.loggerDict.keys()) + ['']:  # добавляем корневой (''))
-        curr_logger = logging.getLogger(logger_name)
-        # У самого логгера уровень трогать не будем – пусть остаётся как есть
-        for handler in curr_logger.handlers:
-            if handler.__class__.__name__ == 'APILogHandler':
-                handler.setLevel(logging.INFO)
+    logger.setLevel(logging.INFO)
     
     # 3. Проверяем, что мы внутри флоу
     ctx = FlowRunContext.get()
