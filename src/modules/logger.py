@@ -1,108 +1,66 @@
-# -*- coding: utf-8 -*-
-"""
-Логгирование работы: 
-1. В CSV-файл (DEBUG)
-2. В stdout (INFO)
-3. В Prefect UI (автоматически при наличии активного run_context)
-"""
-from __future__ import annotations
-from logging import (
-    getLogger, Formatter, FileHandler, StreamHandler, 
-    Handler, INFO, DEBUG, LogRecord
-)
-from pathlib import Path
-from csv import writer as csv_writer, QUOTE_ALL
+import logging
 from io import StringIO
+from csv import writer as csv_writer, QUOTE_ALL
+from prefect import flow, get_run_logger
+from prefect.context import FlowRunContext
 from datetime import datetime
-from prefect.logging import get_run_logger
-from prefect.context import FlowRunContext, TaskRunContext
+from pathlib import Path
 
-CSV_COLUMNS = ["Day", "Month", "Year", "Hour", "Minutes", "Seconds", "Microseconds", "Level", "Logger", "Location", "Message"]
+TSV_COLUMNS = ["Day", "Month", "Year", "Hour", "Minutes", "Seconds", "Microseconds", "Level", "Logger", "Location", "Message"]
 
-class PrefectLogHandler(Handler):
-    """
-    Кастомный хэндлер для автоматической трансляции логов в Prefect UI.
-    """
-    def emit(self, record: LogRecord) -> None:
-        # Проверяем, находимся ли мы в контексте выполнения Prefect
-        if FlowRunContext.get() or TaskRunContext.get():
-            try:
-                p_logger = get_run_logger()
-                # Транслируем уровень лога и сообщение
-                p_logger.log(record.levelno, self.format(record))
-            except Exception:
-                # Если что-то пошло не так с Prefect, не роняем основной поток
-                pass
-
-class CsvFormatter(Formatter):
-    """Форматтер для записи в CSV структуру."""
-    def __init__(self) -> None:
-        super().__init__()
-        self.output = StringIO()
-        self.writer = csv_writer(self.output, quoting=QUOTE_ALL)
-
-    def format(self, record: LogRecord) -> str:
+class TsvFormatter(logging.Formatter):
+    """Быстрый TSV форматтер без лишних объектов."""
+    def format(self, record: logging.LogRecord) -> str:
         dt = datetime.fromtimestamp(record.created)
-        self.writer.writerow([
+        # Экранируем сообщение (кавычки), если там есть табы или переносы
+        msg = str(record.msg).replace('"', '""').replace('\t', ' ').replace('\n', ' ')
+        parts = [
             dt.strftime("%d"), dt.strftime("%m"), dt.strftime("%Y"),
             dt.strftime("%H"), dt.strftime("%M"), dt.strftime("%S"),
             dt.strftime("%f"), record.levelname, record.name,
-            f"{record.funcName}:{record.lineno}", record.msg
-        ])
-        data = self.output.getvalue()
-        self.output.truncate(0)
-        self.output.seek(0)
-        return data.strip()
+            f"{record.funcName}:{record.lineno}", f'"{msg}"'
+        ]
+        return "\t".join(parts)
 
-console_fmt = Formatter(
-    fmt="%(asctime)s | %(levelname)-8s | %(name)s | %(funcName)s:%(lineno)d | %(message)s",
-    datefmt="%d.%m.%Y %H:%M:%S",
-)
-
-_log_file_path: Path
-
-def setup_logger(
-                 log_dir: Path,
-                 now_time:str
-                ) -> None:
-    """Инициализирует путь к лог-файлу ОДИН РАЗ за прогон."""
-    global _log_file_path
-    log_dir.mkdir(parents=True, exist_ok=True)
-    _log_file_path = log_dir / f"log_{now_time}.csv"
-    return None
-
-def get_file_handler() -> FileHandler:
-    if not _log_file_path.exists():
-        with open(_log_file_path, 'w', encoding='utf-8', newline='') as f:
+def get_file_handler(log_filepath: Path) -> logging.FileHandler:
+    log_filepath.parent.mkdir(exist_ok=True, parents=True)
+    if not log_filepath.exists():
+        with open(log_filepath, 'w', encoding='utf-8', newline='') as f:
             writer = csv_writer(f, quoting=QUOTE_ALL)
-            writer.writerow(CSV_COLUMNS)
-    handler = FileHandler(_log_file_path, encoding='utf-8')
-    handler.setLevel(DEBUG)
-    handler.setFormatter(CsvFormatter())
+            writer.writerow(TSV_COLUMNS)
+    handler = logging.FileHandler(log_filepath, encoding='utf-8')
+    handler.setLevel(logging.DEBUG)
+    handler.setFormatter(TsvFormatter())
     return handler
 
-def get_stream_handler() -> StreamHandler:
-    handler = StreamHandler()
-    handler.setLevel(INFO)
-    handler.setFormatter(console_fmt)
-    return handler
+def setup_custom_logger(log_folder: Path):
+    # определяем контекст флоу
+    ctx = FlowRunContext.get()
+    if not ctx or not ctx.flow or not ctx.flow_run:
+        return # Если вдруг запустили вне флоу
+    
+    # Формируем путь
+    log_dir = log_folder / datetime.now().strftime("%d_%m_%Y")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
+    # Получаем корневой логгер Prefect
+    logger = logging.getLogger("prefect.flow_runs")
+    # Защита от дублирования хэндлеров в рамках одного процесса
+    if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) for h in logger.handlers):
+        if not log_filepath.exists():
+            log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
+        
+        handler = logging.FileHandler(log_filepath, encoding='utf-8')
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(TsvFormatter())
+        logger.addHandler(handler)
 
-def get_prefect_handler() -> PrefectLogHandler:
-    """Хэндлер для UI Prefect без лишних оберток."""
-    handler = PrefectLogHandler()
-    handler.setLevel(INFO)
-    # Используем простой формат для UI, чтобы не дублировать дату (Prefect добавит свою)
-    handler.setFormatter(Formatter("%(name)s: %(message)s"))
-    return handler
-
-def get_logger(name: str):
-    logger = getLogger(name)
-    if not logger.handlers:
-        logger.setLevel(DEBUG)
-        logger.addHandler(get_file_handler())
-        logger.addHandler(get_stream_handler())
-        logger.addHandler(get_prefect_handler())
-    return logger
-
-def get_log_file_path() -> Path:
-    return _log_file_path or Path("./logs/default.csv")
+@flow(name="test-log")
+def some_flow():
+    setup_custom_logger(Path("/mnt/cephfs8_rw/nanopore2/logs"))
+    logger = get_run_logger()
+    logger.debug("Тестовое сообщение debug")
+    logger.info("Тестовое сообщение info")
+    logger.warning("Тестовое сообщение warning")
+    logger.error("Тестовое сообщение error")
+    logger.critical("Тестовое сообщение critical")
