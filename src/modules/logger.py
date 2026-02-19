@@ -14,7 +14,7 @@ TSV_COLUMNS = [
                "Minutes",
                "Seconds",
                "Microseconds",
-               "Flow_ID",
+               "Prefect_Flow_ID",
                "Level",
                "Logger",
                "Location","Message"
@@ -33,22 +33,22 @@ class TsvFormatter(logging.Formatter):
             dt.strftime("%d"), dt.strftime("%m"), dt.strftime("%Y"),
             dt.strftime("%H"), dt.strftime("%M"), dt.strftime("%S"),
             dt.strftime("%f"), self.flow_run_id, record.levelname,
-            record.name, f"{record.funcName}:{record.lineno}", f'"{msg}"'
+            record.filename, f"{record.funcName}:{record.lineno}", f'"{msg}"'
         ]
         return "\t".join(parts)
 
-"""def get_file_handler(log_filepath: Path) -> logging.FileHandler:
-    log_filepath.parent.mkdir(exist_ok=True, parents=True)
-    if not log_filepath.exists():
-        with open(log_filepath, 'w', encoding='utf-8', newline='') as f:
-            writer = csv_writer(f, quoting=QUOTE_ALL)
-            writer.writerow(TSV_COLUMNS)
-    handler = logging.FileHandler(log_filepath, encoding='utf-8')
-    handler.setLevel(logging.DEBUG)
-    handler.setFormatter(TsvFormatter())
-    return handler"""
-
 def setup_custom_logger(log_folder: Path):
+    logger = get_run_logger()
+    
+    # 1. Разрешаем логгеру глотать DEBUG (чтобы он дошел до нашего хэндлера)
+    logger.setLevel(logging.DEBUG)
+    
+    # 2. Но стандартному хэндлеру Prefect (который шлет в UI) форсим INFO
+    if isinstance(logger, logging.Logger):
+        for h in logger.handlers:
+            if h.__class__.__name__ == 'ORMLogHandler': # Внутренний хэндлер Prefect
+                h.setLevel(logging.INFO)
+
     # определяем контекст флоу
     ctx = FlowRunContext.get()
     if not ctx or not ctx.flow or not ctx.flow_run:
@@ -58,6 +58,7 @@ def setup_custom_logger(log_folder: Path):
     log_dir = log_folder / datetime.now().strftime("%d_%m_%Y")
     log_dir.mkdir(parents=True, exist_ok=True)
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
+
     # Получаем корневой логгер Prefect
     logger = logging.getLogger()
     # Защита от дублирования хэндлеров в рамках одного процесса
@@ -69,11 +70,11 @@ def setup_custom_logger(log_folder: Path):
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
         logger.addHandler(handler)
+    return logger
 
 @flow(name="test-log")
 def some_flow():
-    setup_custom_logger(Path("/mnt/cephfs8_rw/nanopore2/logs"))
-    logger = get_run_logger()
+    logger = setup_custom_logger(Path("/mnt/cephfs8_rw/nanopore2/logs"))
     logger.debug("Тестовое сообщение debug")
     logger.info("Тестовое сообщение info")
     logger.warning("Тестовое сообщение warning")
