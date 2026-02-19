@@ -10,6 +10,9 @@ from os import getenv
 LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
 SERVER_IP = getenv('SERVER_IP', 'localhost')
 
+from os import environ
+print(environ)
+
 TSV_COLUMNS = [
                "Day",
                "Month",
