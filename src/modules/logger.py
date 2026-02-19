@@ -62,6 +62,9 @@ def setup_custom_logger(log_folder: Path):
     # Получаем корневой логгер Prefect
     logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
+    for h in logger.handlers:
+            if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect
+                h.setLevel(logging.INFO)
     # Защита от дублирования хэндлеров в рамках одного процесса
     if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) for h in logger.handlers):
         if not log_filepath.exists():
