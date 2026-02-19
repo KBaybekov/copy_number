@@ -11,7 +11,7 @@ LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
 SERVER_IP = getenv('SERVER_IP', 'localhost')
 
 from os import environ
-print(environ)
+print(list(environ.keys()).sort())
 
 TSV_COLUMNS = [
                "Day",
