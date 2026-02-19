@@ -1,9 +1,7 @@
 import logging
-from io import StringIO
-from csv import writer as csv_writer, QUOTE_ALL
 from prefect import flow, get_run_logger
 from prefect.context import FlowRunContext
-from prefect.logging.handlers import APILogHandler, PrefectConsoleHandler
+from prefect.logging.handlers import APILogHandler
 from datetime import datetime
 from pathlib import Path
 
@@ -38,45 +36,6 @@ class TsvFormatter(logging.Formatter):
         ]
         return "\t".join(parts)
 
-def setup_custom_logger_(log_folder: Path):
-    logger = get_run_logger()
-    
-    # 1. Разрешаем логгеру глотать DEBUG (чтобы он дошел до нашего хэндлера)
-    logger.setLevel(logging.DEBUG)
-    
-    # 2. Но стандартному хэндлеру Prefect (который шлет в UI) форсим INFO
-    from prefect.logging.handlers import APILogHandler
-    for handler in logger.handlers:
-        if isinstance(handler, APILogHandler):
-            handler.setLevel(logging.INFO)
-
-    # определяем контекст флоу
-    ctx = FlowRunContext.get()
-    if not ctx or not ctx.flow or not ctx.flow_run:
-        return # Если вдруг запустили вне флоу
-    
-    # Формируем путь
-    log_dir = log_folder / datetime.now().strftime("%d_%m_%Y")
-    log_dir.mkdir(parents=True, exist_ok=True)
-    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
-
-    # Получаем корневой логгер Prefect
-    logger = logging.getLogger()
-    logger.setLevel(logging.DEBUG)
-    for h in logger.handlers:
-            if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect
-                h.setLevel(logging.INFO)
-    # Защита от дублирования хэндлеров в рамках одного процесса
-    if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) for h in logger.handlers):
-        if not log_filepath.exists():
-            log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
-        
-        handler = logging.FileHandler(log_filepath, encoding='utf-8')
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
-        logger.addHandler(handler)
-    return logger
-
 def setup_custom_logger(log_folder: Path):
     logger = get_run_logger()  # адаптер Prefect
     
@@ -86,39 +45,42 @@ def setup_custom_logger(log_folder: Path):
     # 3. Проверяем, что мы внутри флоу
     ctx = FlowRunContext.get()
     if not ctx or not ctx.flow or not ctx.flow_run:
-        return  # вне контекста флоу – ничего не делаем
+        return logger  # вне контекста флоу – ничего не делаем
     
     # 4. Формируем путь к файлу
     now = datetime.now()
     log_dir = log_folder / now.strftime("%d_%m_%Y")
-    log_dir.mkdir(parents=True, exist_ok=True)
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv"
     
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
-    real_logger = logger.logger if hasattr(logger, 'logger') else logger
+    real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
 
     # 6. Защита от дублирования файлового обработчика
     if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
-               for h in real_logger.handlers):
+               for h in real_logger.handlers): # type: ignore
         # Создаём файл с заголовком, если его нет
         if not log_filepath.exists():
+            log_dir.mkdir(parents=True, exist_ok=True)
             log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
         
         # Добавляем файловый обработчик с уровнем DEBUG и TSV-форматированием
         handler = logging.FileHandler(log_filepath, encoding='utf-8')
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
-        logger.logger.addHandler(handler)
+        logger.logger.addHandler(handler) # type: ignore
 
+        """
         console_handler = PrefectConsoleHandler(level=logging.INFO)
         logger.logger.addHandler(console_handler)
+        """
 
-    for handler in logger.logger.handlers:
+    for handler in logger.logger.handlers: # type: ignore
         if isinstance(handler, APILogHandler):
             handler.setLevel(logging.INFO)
+        """
         if isinstance(handler, PrefectConsoleHandler):
             handler.setLevel(logging.INFO)
-    print(logger.logger.handlers)
+    print(logger.logger.handlers)"""
     return logger
 
 @flow(name="test-log")
