@@ -10,6 +10,9 @@ TSV_COLUMNS = ["Day", "Month", "Year", "Hour", "Minutes", "Seconds", "Microsecon
 
 class TsvFormatter(logging.Formatter):
     """Быстрый TSV форматтер без лишних объектов."""
+    def __init__(self, flow_run_id: str):
+        super().__init__()
+        self.flow_run_id = str(flow_run_id)
     def format(self, record: logging.LogRecord) -> str:
         dt = datetime.fromtimestamp(record.created)
         # Экранируем сообщение (кавычки), если там есть табы или переносы
@@ -22,7 +25,7 @@ class TsvFormatter(logging.Formatter):
         ]
         return "\t".join(parts)
 
-def get_file_handler(log_filepath: Path) -> logging.FileHandler:
+"""def get_file_handler(log_filepath: Path) -> logging.FileHandler:
     log_filepath.parent.mkdir(exist_ok=True, parents=True)
     if not log_filepath.exists():
         with open(log_filepath, 'w', encoding='utf-8', newline='') as f:
@@ -31,7 +34,7 @@ def get_file_handler(log_filepath: Path) -> logging.FileHandler:
     handler = logging.FileHandler(log_filepath, encoding='utf-8')
     handler.setLevel(logging.DEBUG)
     handler.setFormatter(TsvFormatter())
-    return handler
+    return handler"""
 
 def setup_custom_logger(log_folder: Path):
     # определяем контекст флоу
@@ -52,7 +55,7 @@ def setup_custom_logger(log_folder: Path):
         
         handler = logging.FileHandler(log_filepath, encoding='utf-8')
         handler.setLevel(logging.DEBUG)
-        handler.setFormatter(TsvFormatter())
+        handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
         logger.addHandler(handler)
 
 @flow(name="test-log")
