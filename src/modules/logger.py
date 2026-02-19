@@ -60,7 +60,7 @@ def setup_custom_logger(log_folder: Path):
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
 
     # Получаем корневой логгер Prefect
-    logger = logging.getLogger()
+    #logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     for h in logger.handlers:
             if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect

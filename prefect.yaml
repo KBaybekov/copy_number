@@ -39,7 +39,7 @@ pull:
 deployments:
   - name: CYP2D6_COPY
     version: '{{ build-image.tag }}'
-    tags: ['nanopore', 'nextflow']
+    tags: ['nanopore', 'cyp2d6']
     description: "Flow for processing SVs & CNVs in CYP2D6 gene within ONT data"
     schedules: []
     flow_name: "CYP2D6_COPY-Flow"
@@ -51,5 +51,6 @@ deployments:
     job_variables:
       image: "{{ build-image.image }}"
     parameters:
+      log_folder: /mnt/cephfs8_rw/nanopore2/logs
       table_input: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/copy_number/private/ont_samples.xlsx
       sample_data_csv: /mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv
