@@ -85,10 +85,13 @@ def setup_custom_logger(log_folder: Path):
     # 2. Понижаем уровень APILogHandler в корневом логгере до INFO
     root_logger = logging.getLogger()
     root_logger.setLevel(logging.DEBUG)  # чтобы корень пропускал все уровни
-    for handler in root_logger.handlers:
-        # Более надёжная проверка: по имени класса или по типу (если доступен импорт)
-        if handler.__class__.__name__ == 'APILogHandler':
-            handler.setLevel(logging.INFO)
+    # 2. Перебираем ВСЕ существующие логгеры и для каждого обработчика типа APILogHandler ставим уровень INFO
+    for logger_name in list(logging.Logger.manager.loggerDict.keys()) + ['']:  # добавляем корневой (''))
+        curr_logger = logging.getLogger(logger_name)
+        # У самого логгера уровень трогать не будем – пусть остаётся как есть
+        for handler in curr_logger.handlers:
+            if handler.__class__.__name__ == 'APILogHandler':
+                handler.setLevel(logging.INFO)
     
     # 3. Проверяем, что мы внутри флоу
     ctx = FlowRunContext.get()
@@ -96,9 +99,10 @@ def setup_custom_logger(log_folder: Path):
         return  # вне контекста флоу – ничего не делаем
     
     # 4. Формируем путь к файлу
-    log_dir = log_folder / datetime.now().strftime("%d_%m_%Y")
+    now = datetime.now()
+    log_dir = log_folder / now.strftime("%d_%m_%Y")
     log_dir.mkdir(parents=True, exist_ok=True)
-    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
+    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv"
     
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
     real_logger = logger.logger if hasattr(logger, 'logger') else logger
