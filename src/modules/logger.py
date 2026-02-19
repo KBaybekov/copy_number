@@ -3,7 +3,7 @@ from io import StringIO
 from csv import writer as csv_writer, QUOTE_ALL
 from prefect import flow, get_run_logger
 from prefect.context import FlowRunContext
-from prefect.logging.handlers import APILogHandler
+from prefect.logging.handlers import APILogHandler, PrefectConsoleHandler
 from datetime import datetime
 from pathlib import Path
 
@@ -109,6 +109,9 @@ def setup_custom_logger(log_folder: Path):
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
         logger.logger.addHandler(handler)
+
+        console_handler = PrefectConsoleHandler(level=logging.INFO)
+        logger.logger.addHandler(console_handler)
 
     print(logger.logger.handlers)
     for handler in logger.logger.handlers:
