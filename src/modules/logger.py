@@ -94,13 +94,17 @@ def get_logger():
         
     create_link_artifact(
                             key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
-                            link=f"{SERVER_IP}/{log_filepath.resolve().as_posix()}",  # преобразуем путь в file:// URL
+                            # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
+                            # (в Apache2 прописан алиас к LOG_FOLDER) 
+                            link=f"{SERVER_IP}/{log_filepath.parent.name}/{log_filepath.name}", 
                             link_text="📄 Открыть лог-файл",
                             description=f"""# Логи запуска {ctx.flow.name}
 
                     - ID запуска: `{ctx.flow_run.id}`
                     - Дата: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
                     - Формат: TSV
+                    - Полный путь: {log_filepath.resolve().as_posix()}
+                    
 
                     Файл содержит полные логи уровня DEBUG и выше.
                     """,
