@@ -37,7 +37,7 @@ class TsvFormatter(logging.Formatter):
         ]
         return "\t".join(parts)
 
-def setup_custom_logger(log_folder: Path):
+def setup_custom_logger_(log_folder: Path):
     logger = get_run_logger()
     
     # 1. Разрешаем логгеру глотать DEBUG (чтобы он дошел до нашего хэндлера)
@@ -74,6 +74,48 @@ def setup_custom_logger(log_folder: Path):
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
         logger.addHandler(handler)
+    return logger
+
+def setup_custom_logger(log_folder: Path):
+    logger = get_run_logger()  # адаптер Prefect
+    
+    # 1. Разрешаем логгеру флоу глотать DEBUG
+    logger.setLevel(logging.DEBUG)
+    
+    # 2. Понижаем уровень APILogHandler в корневом логгере до INFO
+    root_logger = logging.getLogger()
+    root_logger.setLevel(logging.DEBUG)  # чтобы корень пропускал все уровни
+    for handler in root_logger.handlers:
+        # Более надёжная проверка: по имени класса или по типу (если доступен импорт)
+        if handler.__class__.__name__ == 'APILogHandler':
+            handler.setLevel(logging.INFO)
+    
+    # 3. Проверяем, что мы внутри флоу
+    ctx = FlowRunContext.get()
+    if not ctx or not ctx.flow or not ctx.flow_run:
+        return  # вне контекста флоу – ничего не делаем
+    
+    # 4. Формируем путь к файлу
+    log_dir = log_folder / datetime.now().strftime("%d_%m_%Y")
+    log_dir.mkdir(parents=True, exist_ok=True)
+    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
+    
+    # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
+    real_logger = logger.logger if hasattr(logger, 'logger') else logger
+    
+    # 6. Защита от дублирования файлового обработчика
+    if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
+               for h in real_logger.handlers):
+        # Создаём файл с заголовком, если его нет
+        if not log_filepath.exists():
+            log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
+        
+        # Добавляем файловый обработчик с уровнем DEBUG и TSV-форматированием
+        handler = logging.FileHandler(log_filepath, encoding='utf-8')
+        handler.setLevel(logging.DEBUG)
+        handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
+        real_logger.addHandler(handler)
+    
     return logger
 
 @flow(name="test-log")
