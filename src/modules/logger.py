@@ -117,6 +117,8 @@ def setup_custom_logger(log_folder: Path):
     for handler in logger.logger.handlers:
         if isinstance(handler, APILogHandler):
             handler.setLevel(logging.INFO)
+        if isinstance(handler, PrefectConsoleHandler):
+            handler.setLevel(logging.INFO)
     
     return logger
 
