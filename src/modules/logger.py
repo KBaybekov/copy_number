@@ -44,10 +44,10 @@ def setup_custom_logger(log_folder: Path):
     logger.setLevel(logging.DEBUG)
     
     # 2. Но стандартному хэндлеру Prefect (который шлет в UI) форсим INFO
-    if isinstance(logger, logging.Logger):
-        for h in logger.handlers:
-            if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect
-                h.setLevel(logging.INFO)
+    from prefect.logging.handlers import APILogHandler
+    for handler in logger.handlers:
+        if isinstance(handler, APILogHandler):
+            handler.setLevel(logging.INFO)
 
     # определяем контекст флоу
     ctx = FlowRunContext.get()
@@ -60,7 +60,7 @@ def setup_custom_logger(log_folder: Path):
     log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}.tsv"
 
     # Получаем корневой логгер Prefect
-    #logger = logging.getLogger()
+    logger = logging.getLogger()
     logger.setLevel(logging.DEBUG)
     for h in logger.handlers:
             if h.__class__.__name__ == 'APILogHandler': # Внутренний хэндлер Prefect
