@@ -3,6 +3,7 @@ from io import StringIO
 from csv import writer as csv_writer, QUOTE_ALL
 from prefect import flow, get_run_logger
 from prefect.context import FlowRunContext
+from prefect.logging.handlers import APILogHandler
 from datetime import datetime
 from pathlib import Path
 
@@ -80,7 +81,7 @@ def setup_custom_logger(log_folder: Path):
     logger = get_run_logger()  # адаптер Prefect
     
     # 1. Разрешаем логгеру флоу глотать DEBUG
-    logger.setLevel(logging.INFO)
+    logger.setLevel(logging.DEBUG)
     
     # 3. Проверяем, что мы внутри флоу
     ctx = FlowRunContext.get()
@@ -96,8 +97,6 @@ def setup_custom_logger(log_folder: Path):
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
     real_logger = logger.logger if hasattr(logger, 'logger') else logger
 
-    print(logger.logger.handlers)
-    
     # 6. Защита от дублирования файлового обработчика
     if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
                for h in real_logger.handlers):
@@ -110,6 +109,11 @@ def setup_custom_logger(log_folder: Path):
         handler.setLevel(logging.DEBUG)
         handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
         logger.logger.addHandler(handler)
+
+    print(logger.logger.handlers)
+    for handler in logger.logger.handlers:
+        if isinstance(handler, APILogHandler):
+            handler.setLevel(logging.INFO)
     
     return logger
 
