@@ -8,6 +8,7 @@ from pathlib import Path
 from os import getenv
 
 LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
+SERVER_IP = getenv('SERVER_IP', 'localhost')
 
 TSV_COLUMNS = [
                "Day",
@@ -88,13 +89,14 @@ def get_logger():
         
     create_link_artifact(
                             key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
-                            link=log_filepath.absolute().as_uri(),  # преобразуем путь в file:// URL
+                            link=f"{SERVER_IP}://{log_filepath.resolve().as_posix()}",  # преобразуем путь в file:// URL
                             link_text="📄 Открыть лог-файл",
                             description=f"""# Логи запуска {ctx.flow.name}
 
-                    - **ID запуска**: `{ctx.flow_run.id}`
-                    - **Дата**: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
-                    - **Формат**: TSV (таб-разделители)
+                    - 
+                    ID запуска: `{ctx.flow_run.id}`
+                    - Дата: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
+                    - Формат: TSV
 
                     Файл содержит полные логи уровня DEBUG и выше.
                     """,
