@@ -96,7 +96,7 @@ def get_logger():
                             key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
                             # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
                             # (в Apache2 прописан алиас к LOG_FOLDER) 
-                            link=f"{SERVER_IP}/{log_filepath.parent.name}/{log_filepath.name}", 
+                            link=f"{SERVER_IP}/{log_filepath.resolve().as_posix().replace(LOG_FOLDER.as_posix(), 'logs')}", 
                             link_text="📄 Открыть лог-файл",
                             description=f"""# Логи запуска {ctx.flow.name}
 
