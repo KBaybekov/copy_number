@@ -2,15 +2,16 @@
 from __future__ import annotations
 
 import asyncio
-from datetime import datetime
 from pathlib import Path
 from typing import List, Tuple, Optional, cast, Any, Coroutine
 from uuid import UUID
+
 
 from prefect import flow
 from prefect.artifacts import create_markdown_artifact
 
 # Импорт кастомных модулей
+from config import main_flow_options
 from core.sample_workflow import sample_workflow
 from file_format_handlers.excel_handler import process_input_data
 from modules.logger import get_logger
@@ -18,9 +19,6 @@ from classes.sample import Sample
 
 # Создаём логгер на основе
 logger = get_logger()
-
-now = datetime.now()
-formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S")
 
 
 '''@flow(name="Sample-Lifecycle-Mock")
@@ -50,23 +48,7 @@ async def sample_workflow(sample: Sample) -> Sample:
     return sample
 '''
 
-@flow(
-      name="CYP2D6-Main-Pipeline",
-      flow_run_name=f"CYP2D6-Main_{formatted_now}",
-      description="Основной конвейер обработки CYP2D6. Загружает таблицу и запускает жизненный цикл для каждого сэмпла.",
-      version="1.0.0",
-      retries=0,
-      persist_result=True,
-      #result_serializer=,
-      #result_storage=,
-      timeout_seconds=None,
-      log_prints=True,
-      #on_completion: list[FlowStateHook[..., Any]] | None = None,
-      #on_failure: list[FlowStateHook[..., Any]] | None = None,
-      #on_cancellation: list[FlowStateHook[..., Any]] | None = None,
-      #on_crashed: list[FlowStateHook[..., Any]] | None = None,
-      #on_running: list[FlowStateHook[..., Any]] | None = None
-     )
+@flow(**main_flow_options)
 async def main_pipeline(
                         table_input: str,
                         sample_data_csv: Optional[str] = None
@@ -111,7 +93,14 @@ async def main_pipeline(
 
     # Порождение независимых потоков (Subflows) для каждого сэмпла   
     logger.info(f"Инициализация асинхронных потоков для {len(samples)} образцов...")
-    tasks: List[Coroutine[Any, Any, Sample]] = [sample_workflow(s) for s in samples if not s.finished]
+
+    pipeline_name = main_flow_options['name']
+    tasks: List[Coroutine[Any, Any, Sample]] = [
+                                                sample_workflow.with_options(
+                                                                             name=f"[Sample Workflow] {pipeline_name}",
+                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]",
+                                                                             flow_run_name=f"{pipeline_name} [{s.id}]"
+                                                                            )(s) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await asyncio.gather(*tasks, return_exceptions=True)
     
     # Анализ итогов пачки

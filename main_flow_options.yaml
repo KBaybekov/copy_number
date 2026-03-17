@@ -1,0 +1,12 @@
+# Common options for customizing main workflow
+# Some options located at config.py
+name: CYP2D6_COPY_NUMBER
+description: >
+  Основной конвейер обработки CYP2D6.
+  Загружает таблицу и запускает жизненный цикл для каждого сэмпла.
+retries: 3
+retry_delay_seconds: 5
+timeout_seconds: null
+persist_result: true
+log_prints: true
+validate_parameters: true
