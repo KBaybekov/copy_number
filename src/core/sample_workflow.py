@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, List, cast, Coroutine
+from typing import Any, Callable, Dict, List, cast, Coroutine, Tuple
 from uuid import UUID
 from datetime import datetime
 
@@ -10,6 +10,7 @@ from prefect import flow, task
 from prefect.futures import PrefectFuture, as_completed
 from prefect.runtime import flow_run
 from prefect.artifacts import create_markdown_artifact
+from prefect_shell import ShellOperation
 
 from classes.sample import Sample
 from config import STAGE_DEPENDENCIES, STAGE_CONDITIONS
@@ -23,8 +24,8 @@ formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S.%f")
 loop_duration = 5
 
 
-@task(name="Run Pipeline Stage", timeout_seconds=3600)
-async def run_pipeline_stage(
+@task
+async def _run_pipeline_stage(
     sample: Sample,
     stage_name: str,
     **kwargs
@@ -54,6 +55,127 @@ async def run_pipeline_stage(
         logger.error(f"Ошибка при выполнении стадии '{stage_name}' для {sample.id}: {e}", exc_info=True)
         sample.fail(stage_name=stage_name, reason=str(e))
         return sample
+    
+@task
+async def run_pipeline_stage(
+    sample: Sample,
+    stage_name: str,
+    **kwargs
+) -> Sample:
+    """
+    Запускает одну стадию обработки образца
+    """
+    try:
+        logger.info(f"Запуск стадии '{stage_name}' для образца {sample.id}")
+        stage_status = "FAIL"
+        processing_succesful = False
+        # Загружаем функцию обработки
+        handler: Callable[..., Tuple[Sample, bool]] | None = STAGE_DEPENDENCIES.get(stage_name, {}).get('handler')
+        if handler is None:
+            logger.error(f"Handler for stage '{stage_name}' not found in STAGE_DEPENDENCIES. Skipping.")
+        else:
+            # Загружаем функцию проверки валидности образца
+            sample_checker = STAGE_CONDITIONS.get(stage_name, lambda _: False)
+            while sample.success:
+                if sample_checker(sample):
+                    # проверяем, указаны ли основные рабочая и результирующая папки
+                    if all([
+                            sample.res_folder is not None,
+                            sample.work_folder is not None
+                        ]):
+                        # Создание папок для стадии обработки
+                        stage_dirs = []
+                        for d in [sample.work_folder, sample.res_folder]:
+                            f = d / stage_name # type: ignore
+                            f.mkdir(parents=True, exist_ok=True)
+                            stage_dirs.append(f)
+                    else:
+                        sample.fail(
+                                    stage_name=stage_name,
+                                    reason="Not set: res_folder/work_folder"
+                                )
+                        break
+                    # Все начальные проверки пройдены, запускаем логику для этой стадии
+                    sample, processing_succesful = await handler(
+                                                    sample=sample,
+                                                    stage_dirs=stage_dirs,
+                                                    **kwargs
+                                                    )
+                # sample_checker покажет False, если проверка не пройдена 
+                # (либо образец не ок, либо обработка завершена и образец больше в ней не нуждается)
+                else:
+                    logger.info(f"Sample {sample.id} doesn't meet conditions for {stage_name} [anymore]")
+                    break
+            else:
+                logger.error(f'Sample {sample.id} is broken during "{stage_name}"')
+
+            if processing_succesful:
+                stage_status = "OK"
+        sample.stage_statuses[stage_name] = stage_status
+        return sample
+
+    except Exception as e:
+        logger.error(f"Ошибка при выполнении стадии '{stage_name}' для {sample.id}: {e}", exc_info=True)
+        sample.fail(stage_name=stage_name, reason=str(e))
+        return sample
+
+
+    try:
+
+        # Запускаем синхронную функцию в потоке
+        updated_sample = await asyncio.to_thread(
+            run_stage,
+            sample=sample,
+            stage_name=stage_name,
+            **kwargs
+        )
+
+        if updated_sample.success:
+            logger.info(f"Стадия '{stage_name}' успешно завершена для {sample.id}")
+        else:
+            logger.warning(f"Стадия '{stage_name}' провалилась для {sample.id}")
+
+        return updated_sample
+
+    except Exception as e:
+        logger.error(f"Ошибка при выполнении стадии '{stage_name}' для {sample.id}: {e}", exc_info=True)
+        sample.fail(stage_name=stage_name, reason=str(e))
+        return sample
+
+@task
+async def run_shell_stage(sample: Sample, stage_name: str, cmd_template: str) -> Sample:
+    """
+    Заменяет: stage_wrapper, run_stage, form_cmd и run_subprocess_with_stop.
+    """
+    # 1. Подготовка путей (бывший stage_wrapper)
+    work_dir = sample.work_folder / stage_name
+    work_dir.mkdir(parents=True, exist_ok=True)
+
+    # 2. Запуск через ShellOperation
+    # Мы передаем переменные из sample.to_dict() напрямую в шаблоны {{ }}
+    try:
+        async with ShellOperation(
+            commands=[cmd_template],
+            working_dir=work_dir,
+            env={"SAMPLE_ID": sample.id}, # Можно прокинуть доп. переменные
+        ).lo as shell_batch:
+            # Запускаем и стримим логи в Prefect UI
+            process = await shell_batch.trigger()
+            await process.await_for_completion()
+            
+            # Получаем результат (выбросит исключение при exit_code != 0)
+            result = process.return_code
+            
+        # 3. Фиксация успеха
+        with sample._lock:
+            sample.stage_statuses[stage_name] = "OK"
+            
+    except Exception as e:
+        # Если команда упала или была отменена, Prefect поймает это здесь
+        logger.error(f"Stage {stage_name} failed: {e}")
+        sample.fail(stage_name=stage_name, reason=str(e))
+
+    return sample
 
 @flow
 async def sample_workflow(

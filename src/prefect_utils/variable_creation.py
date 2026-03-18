@@ -1,4 +1,4 @@
-params {
+text = """params {
     fastq = {{ fq_dir }}
     references = "/mnt/cephfs8_rw/nanopore2/service/reference/human/hg38/no_alt"
     reference_mmi_file = "/mnt/cephfs8_rw/nanopore2/service/reference/human/hg38/no_alt/GCA_000001405.15_GRCh38_no_alt_analysis_set.fna.mmi"
@@ -15,4 +15,6 @@ process {
     }
 }
 
-workDir = {{ sample_work_dir }}
+workDir = {{ sample_work_dir }}"""
+
+print(text.replace('\n', '\\n').replace('"', '\\"'))
