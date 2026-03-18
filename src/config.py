@@ -69,9 +69,49 @@ call_semaphore = Semaphore(MAX_CALLING)
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
 STAGE_DEPENDENCIES = {
                       'alignment':{
-                                   'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT}
+                                   'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT},
+                                   'prefect_task_args': {
+                                                         'description': 'Выравнивание .fastq файлов ONT',
+                                                         'timeout': None,
+                                                         'retries': 3,
+                                                         'retry_delay_seconds': 20,
+                                                         'log_prints': True                                                        
+                                                        }
                                   }
                      }
+
+"""cache_key_fn
+A new cache key function for the task.
+
+cache_expiration
+A new cache expiration time for the task.
+
+persist_result
+A new option for enabling or disabling result persistence.
+
+result_storage
+A new storage type to use for results.
+
+result_serializer
+A new serializer to use for results.
+
+result_storage_key
+A new key for the persisted result to be stored at.
+
+refresh_cache
+A new option for enabling or disabling cache refresh.
+
+on_completion
+A new list of callables to run when the task enters a completed state.
+
+on_failure
+A new list of callables to run when the task enters a failed state.
+
+retry_condition_fn
+An optional callable run when a task run returns a Failed state. Should return True if the task should continue to its retry policy, and False if the task should end as failed. Defaults to None, indicating the task should always continue to its retry policy.
+
+viz_return_value
+An optional value to return when the task dependency tree is visualized."""
 
 
 # Реестр условий входа для этапов

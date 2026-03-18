@@ -4,6 +4,9 @@ name: CYP2D6_COPY_NUMBER
 description: >
   Основной конвейер обработки CYP2D6.
   Загружает таблицу и запускает жизненный цикл для каждого сэмпла.
+tags:
+  - nanopore
+  - cyp2d6
 retries: 3
 retry_delay_seconds: 5
 timeout_seconds: null

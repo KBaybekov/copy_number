@@ -2,12 +2,14 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Dict, Set, List
+from typing import Any, Dict, List, cast, Coroutine
+from uuid import UUID
 from datetime import datetime
 
 from prefect import flow, task
-from prefect.futures import PrefectFuture
-from prefect.context import FlowRunContext, TaskRunContext
+from prefect.futures import PrefectFuture, as_completed
+from prefect.runtime import flow_run
+from prefect.artifacts import create_markdown_artifact
 
 from classes.sample import Sample
 from config import STAGE_DEPENDENCIES, STAGE_CONDITIONS
@@ -18,6 +20,7 @@ logger = get_logger()
 
 now = datetime.now()
 formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S.%f")
+loop_duration = 5
 
 
 @task(name="Run Pipeline Stage", timeout_seconds=3600)
@@ -52,7 +55,6 @@ async def run_pipeline_stage(
         sample.fail(stage_name=stage_name, reason=str(e))
         return sample
 
-
 @flow
 async def sample_workflow(
                           sample: Sample
@@ -64,142 +66,143 @@ async def sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
-    # Получение контекста
-    тут продолжим!
-    flow_context = FlowRunContext.get()
+
+    async def gather_task_statistics(
+                               submitted_tasks: List[PrefectFuture],
+                               task_statistics: Dict[str, Any]
+                              ) -> Dict[str, Any]:
+        """
+        Функция для получения статистики по выполнению задач.
+        Возвращает список активных задач.
+        """
+        # 1. Собираем статистику
+        for task in submitted_tasks:
+            task_id = task.task_run_id.__str__()
+            task_stats = task_statistics.get(task_id, {'is_final': False, 'status': ''})
+            if task_stats['is_final']:
+                continue
+            else:
+                task_stats['is_final'] = task.state.is_final()
+                task_stats['status'] = task.state.name
+                task_statistics[task_id] = task_stats
+
+        finished_tasks = [t for t in task_statistics.values() if t['is_final']]
+
+        # 2. Формируем Markdown текст
+        markdown_report = f"""
+        ### 📊 Статистика выполнения задач
+        **Всего задач:** {len(submitted_tasks)}
+        **Завершено (Final):** {len(finished_tasks)}
+        **В процессе:** {len(submitted_tasks) - len(finished_tasks)}
+        **Запущенные стадии обработки:** {', '.join(task_statistics['running_stages'])}
+
+
+        | Task ID | Status | Completed |
+        | :--- | :--- | :--- |
+        {chr(10).join([f"| {task_id} | {v['status']} |{ v['is_final']} |"
+                       for task_id, v in task_statistics.items()
+                       if task_id != 'running_stages'])}
+        """
+        # 3. Публикуем артефакт
+        await cast(Coroutine[Any, Any, UUID], create_markdown_artifact(
+                                 key="task-execution-stats",
+                                 markdown=markdown_report,
+                                 description="Текущий статус всех запущенных задач"
+                                ))
+        return task_statistics
+
+    # Получение параметров запуска
+    flow_params = flow_run.get_parameters()
+    if not flow_params:
+        logger.error("Контекст потока Prefect недоступен!")
+        return sample
+        
 
     logger.info(f"Запуск обработки образца {sample.id} через Prefect")
 
     # Список стадий, которые ещё не начаты
-    pending_stages = list(STAGE_DEPENDENCIES.keys())
+    stages = list(STAGE_DEPENDENCIES.keys())
     submitted_tasks: List[PrefectFuture] = []
-    running_stages: List[str] = []
+    active_tasks: List[PrefectFuture] = []
+    finished_tasks: List[str] = []
+    task_statistics: Dict[str, Any] = {'running_stages':[]}
+    # Запущенные стадии и id задач
+    running_stage_tasks: Dict[str, str] = {}
 
     while all([
-               any(pending_stages or running_stages),
-               all([sample.success, not sample.finished])
+               sample.success,
+               any([
+                    active_tasks,
+                    not sample.finished
+                   ])
               ]):
+        start = datetime.now()
         # Проверяем, какие стадии можно запустить
-        for stage_name in pending_stages:
+        for stage_name in stages:
             sample_suitable_for_stage = STAGE_CONDITIONS.get(stage_name, lambda _: False)
             # Образец должен отвечать критериям, а стадия ранее не была запущена
             if all([
                     sample_suitable_for_stage(sample),
-                    stage_name not in running_stages
+                    stage_name not in running_stage_tasks
                    ]):
                 logger.debug(f"creating task for {stage_name}")
                 stage_data = STAGE_DEPENDENCIES.get(stage_name)
                 # Задание запускаем, если прописаны условия для этой стадии
                 if stage_data is not None:
+                    # Получаем аргументы для самого задания обработки
                     stage_args = stage_data.get('args', {})
-                    stage_timeout = stage_data.get('timeout', None)
+                    # Получаем параметры для таски Prefect
+                    prefect_task_args = stage_data.get('prefect_task_args', {})
                     task = run_pipeline_stage.with_options(
-                                                           name=f"Task_{sample.id}"
-                                                        
+                                                           task_run_name=f"[Task] {stage_name} [{sample.id}]",
+                                                           tags=flow_params.get('tags', []),
+                                                           **prefect_task_args                                                        
                                                           ).submit(
-                                                    sample=sample,
-                                                    stage_name=stage_name,
-                                                    *stage_args
-                                                    )
+                                                                   sample=sample,
+                                                                   stage_name=stage_name,
+                                                                   **stage_args
+                                                                  )
+                    # Добавляем задание в список отправленных на выполнение
                     submitted_tasks.append(task)
-                    running_stages.append(stage_name)
+                    active_tasks.append(task)
+                    # Добавляем стадию в список запущенных
+                    running_stage_tasks[stage_name] = task.task_run_id.__str__()
+                    task_statistics['running_stages'].append(stage_name)
                 else:
                     logger.error(f"Указана неверная стадия обработки: {stage_name}")
         
-        for task in submitted_tasks:
-            state = task
+        if not running_stage_tasks:
+            # Если ничего не запущено и условий для запуска новых нет — выходим
+            sample.finished = True
+            break
 
+        left_time = max(0, (loop_duration - (datetime.now() - start).total_seconds()))
+        # Собираем статистику, выдерживаем паузу до следующего цикла
+        task_statistics = await gather_task_statistics(submitted_tasks, task_statistics)
+        
+        # 3. Ждем завершения любой из запущенных стадий
+        #done, _ = as_completed(active_tasks, timeout=left_time)
+        try:
+            just_finished_tasks: List[PrefectFuture] = []
+            for task in as_completed(active_tasks, timeout=left_time):
+                sample = await task.result()
+                # Обновляем списки заданий
+                task_id = task.task_run_id.__str__()
+                finished_tasks.append(task_id)
+                just_finished_tasks.append(task)
+                # Удаляем из списка активных стадий ту, задание которой завершено
+                stage_name = next(t for t in running_stage_tasks.keys() if running_stage_tasks[t] == task_id)
+                running_stage_tasks.pop(stage_name)
+                task_statistics['running_stages'].remove(stage_name)
+            for task in just_finished_tasks:
+                active_tasks.remove(task)
 
-        await asyncio.gather(*tasks)
-        tasks = []
-
-        # В случае отсутствия обработки образца - ждём некоторое время (если предыд)
-        if not running_stages:
-                            
-
-                
-
-            condition_fn = STAGE_CONDITIONS.get(stage_name, lambda _: False)
-            if not condition_fn(sample):
-                continue
-
-            if stage_name in running_tasks:
-                continue  # уже запущена
-
-            stage_config = STAGE_DEPENDENCIES[stage_name]
-            stage_args = stage_config.get("args", {}).copy()
-            semaphore = stage_config.get("semaphore")
-
-            # Подготавливаем GPU, если требуется
-            gpu_id = None
-            needs_gpu = stage_config.get("needs_gpu", False)
-
-            if needs_gpu:
-                gpu_id = await acquire_gpu_id()
-                if gpu_id is None:
-                    logger.debug(f"Нет свободного GPU для стадии {stage_name}, пропуск...")
-                    continue
-
-            # Создаём Prefect-задачу с семафором
-            task_kwargs = {
-                "sample": sample.model_copy(deep=True),
-                "stage_name": stage_name,
-                **stage_args
-            }
-
-            # Обёртываем в семафор, если задан
-            if semaphore:
-                async with semaphore:
-                    task = asyncio.create_task(
-                        run_pipeline_stage.submit(  # submit чтобы не блокировать
-                            **task_kwargs,
-                            gpu_id=gpu_id,
-                            wait_for=[]  # можно добавить зависимости
-                        )
-                    )
-            else:
-                task = asyncio.create_task(
-                    run_pipeline_stage.submit(**task_kwargs, gpu_id=gpu_id)
-                )
-
-            running_tasks[stage_name] = task
-            pending_stages.remove(stage_name)
-            logger.debug(f"Запланирована стадия: {stage_name}")
-
-        # Если ничего не запущено — ждём или выходим
-        if not running_tasks:
-            await asyncio.sleep(1)
-            continue
-
-        # Ждём завершения хотя бы одной задачи
-        done, _ = await asyncio.wait(running_tasks.values(), return_when=asyncio.FIRST_COMPLETED)
-
-        for task in done:
-            stage_name = next(k for k, v in running_tasks.items() if v == task)
-            del running_tasks[stage_name]
-
-            try:
-                result_sample: Sample = await task
-                sample = result_sample
-                logger.info(f"Стадия {stage_name} завершена для {sample.id}")
-            except Exception as exc:
-                logger.error(f"Стадия {stage_name} упала для {sample.id}: {exc}", exc_info=True)
-                sample.success = False
-            finally:
-                # Освобождаем GPU, если был захвачен
-                stage_config = STAGE_DEPENDENCIES.get(stage_name, {})
-                if stage_config.get("needs_gpu"):
-                    gpu_id = task.get_coro().cr_frame.f_locals.get("gpu_id")
-                    if gpu_id is not None:
-                        await release_gpu_id(gpu_id)
-
-        # После успешного завершения — можно снова попробовать запустить стадии
-        # (например, если циклические или повторные проверки)
+        except TimeoutError:
+            logger.debug(f"Ни одна задача не завершилась за отведенное время [{left_time.__round__(2)} sec.]")
 
     # Финализация
     sample.finished = True
-    for task in running_tasks.values():
-        task.cancel()
+    
 
     sample.log_sample_data(
         stage_name="Main_flow",

@@ -97,9 +97,8 @@ async def main_pipeline(
     pipeline_name = main_flow_options['name']
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
-                                                                             name=f"[Sample Workflow] {pipeline_name}",
-                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]",
-                                                                             flow_run_name=f"{pipeline_name} [{s.id}]"
+                                                                             flow_run_name=f"[Sample Workflow] {pipeline_name} [{s.id}]",
+                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
                                                                             )(s) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await asyncio.gather(*tasks, return_exceptions=True)
     
