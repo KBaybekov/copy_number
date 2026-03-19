@@ -1,17 +1,15 @@
 from classes.sample import Sample
-from modules.logger import get_logger
-from file_format_handlers.tsv_handler import form_nxf_tsv
-from file_format_handlers.nxf_cfg_handler import form_nxf_cfg
-import subprocess
-from threading import Event
-import time
-from typing import Callable, Dict, List, Optional, Tuple
+from format_handlers.tsv_handler import form_nxf_tsv
+from typing import List, Optional, Tuple
 from pathlib import Path
+from modules.prefect import prepare_variable, run_nextflow_pipeline
+from modules.logger import get_logger
+
+logger = get_logger()
 
 def alignment(
               sample: Sample,
               stage_dirs: List[Path],
-              stop_event: Event,
               threads_per_alignment: int
              ) -> Tuple[Sample, bool]:
     def define_src_dir_n_batch_name(
@@ -27,6 +25,8 @@ def alignment(
                 return (fq_dir, batch_name)
         return (None, None)
 
+    nxf_asset = "epi2me-labs/wf-alignment"
+
     is_processing_ok = False
     main_work_d, main_res_d = stage_dirs
 
@@ -37,60 +37,65 @@ def alignment(
         bam_dir = main_res_d / batch_name
         work_dir = main_work_d / batch_name
         bam_id = f"{sample.id}_{batch_name}"
-        cmd_data = {
-                    "FQ_DIR": fq_dir,
-                    "BAM_OUT_DIR": bam_dir,
-                    "PREFIX": f"{sample.id}_",
-                    "ALIGNMENT_THREADS": threads_per_alignment,
-                    "SAMPLE_WORK_DIR": work_dir
+        cfg_data = {
+                    "fq_dir": fq_dir,
+                    "bam_out_dir": bam_dir,
+                    "prefix": f"{sample.id}_",
+                    "alignment_threads": threads_per_alignment,
+                    "sample_work_dir": work_dir
                    }
-        nxf_cfg = form_nxf_cfg(
-                               stage="alignment",
-                               data=cmd_data,
-                               output_filepath=bam_dir / f"nxf_alignment_{bam_id}.config"
-                              )
-        if nxf_cfg is not None:
-            cmd_data = {"NXF_CFG": nxf_cfg, "RES_D_LOG": (work_dir / "nxf.log")}
-            al_cmd = form_cmd(ALIGN_FQ_CMD.copy(), cmd_data)
-            logger.info(f"Sample {sample.id}: Запуск выравнивания для батча {batch_name}")
-            processing_ok, fail_desc = run_subprocess_with_stop(
-                                                                stage_name=stage_name,
-                                                                cmd=al_cmd,
-                                                                stop_event=stop_event,
-                                                                text=True,
-                                                                cwd=work_dir,
-                                                                timeout=ALIGNMENT_TIMEOUT
-                                                               )
-            if processing_ok:
-                bam = next((x for x in bam_dir.iterdir() if x.suffix == ".bam"), None)
-                if bam is not None:
-                    # SUCCESS
-                    with sample._lock:
-                        sample.bams.add(bam)
-                    logger.info(f"Sample {sample.id}: Alignment batch {batch_name}: success")
-                    sample.log_sample_data(stage_name=stage_name, sample_ok=True)
-                    is_processing_ok = True
-                else:
-                    reason = f"Batch {bam_dir.name}: Alignment {bam_dir.name}: finished successfully, but no BAM found."
-                    sample.fail(
-                                stage_name=stage_name,
-                                reason=reason
-                               )
+        cfg_file = bam_dir / f"nxf_alignment_{bam_id}.config"
+        # Формирование конфига для Nextflow
+        with open(cfg_file, 'w') as f:
+            config = prepare_variable(
+                                      variable_name='nxf_cfg_alignment_v1',
+                                      data=cfg_data
+                                     )
+            if config is not None:
+                f.write(config)
             else:
+                reason = f"Nextflow config for alignment of batch {batch_name} not created"
                 sample.log_sample_data(
                                        stage_name=stage_name,
-                                       sample_ok=True,
+                                       sample_ok=False,
                                        critical_error=False,
-                                       fail_reason=fail_desc
+                                       fail_reason=reason
                                       )
+                return (sample, is_processing_ok)
+            
+        # Формирование команды для запуска Nextflow
+        log_path = work_dir / "nxf.log"
+        shell_data = {'commands': {
+                                   'log_path': log_path.as_posix(),
+                                   'pipeline_path': nxf_asset,
+                                   'nxf_config': cfg_file.as_posix(),
+                                   'profile': 'docker'
+                                  },
+                      'working_dir': work_dir
+                     }
+        # Выполнение команды
+        is_processing_ok, fail_desc = run_nextflow_pipeline(operation_data=shell_data)
+        if is_processing_ok:
+            bam = next((x for x in bam_dir.iterdir() if x.suffix == ".bam"), None)
+            if bam is not None:
+                # SUCCESS
+                with sample._lock:
+                    sample.bams.add(bam)
+                logger.info(f"Sample {sample.id}: Alignment batch {batch_name}: success")
+                sample.log_sample_data(stage_name=stage_name, sample_ok=True)
+            else:
+                reason = f"Batch {bam_dir.name}: Alignment {bam_dir.name}: finished successfully, but no BAM found."
+                sample.fail(
+                            stage_name=stage_name,
+                            reason=reason
+                           )
         else:
-            reason = f"cmd for alignment of batch {batch_name} not created"
             sample.log_sample_data(
                                    stage_name=stage_name,
-                                   sample_ok=False,
+                                   sample_ok=True,
                                    critical_error=False,
-                                   fail_reason=reason
-                                  )
+                                   fail_reason=fail_desc
+                                  )        
     else:
         sample.fail(stage_name='alignment_common', reason="not found appropriate fq_dir for alignment, but it has to be")
     return (sample, is_processing_ok)

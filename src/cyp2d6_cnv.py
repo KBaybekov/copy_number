@@ -6,7 +6,7 @@ import sys
 import threading
 from modules.argument_parser import get_args
 from modules.logger import get_logger
-from file_format_handlers.excel_handler import process_input_data
+from format_handlers.excel_handler import process_input_data
 from modules.async_processor import async_process_samples
 
 logger = get_logger(__name__)

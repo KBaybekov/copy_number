@@ -3,7 +3,7 @@ from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Set
 from modules.logger import get_logger
-from file_format_handlers.tsv_handler import write_sample_data
+from format_handlers.tsv_handler import write_sample_data
 from config import ONT_FOLDER, RES_FOLDER, RAW_DATA_THRESHOLD, BASECALLED_DATA_THRESHOLD
 from inspect import stack
 from threading import RLock

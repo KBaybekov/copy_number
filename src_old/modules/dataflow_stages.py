@@ -1,7 +1,7 @@
 from classes.sample import Sample
 from modules.logger import get_logger
-from file_format_handlers.tsv_handler import form_nxf_tsv
-from file_format_handlers.nxf_cfg_handler import form_nxf_cfg
+from format_handlers.tsv_handler import form_nxf_tsv
+from format_handlers.nextflow_config_handler import form_nxf_cfg
 import subprocess
 from threading import Event
 import time

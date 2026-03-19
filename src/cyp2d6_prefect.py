@@ -13,7 +13,7 @@ from prefect.artifacts import create_markdown_artifact
 # Импорт кастомных модулей
 from config import main_flow_options
 from core.sample_workflow import sample_workflow
-from file_format_handlers.excel_handler import process_input_data
+from format_handlers.excel_handler import process_input_data
 from modules.logger import get_logger
 from classes.sample import Sample
 
