@@ -17,9 +17,6 @@ from format_handlers.excel_handler import process_input_data
 from modules.logger import get_logger
 from classes.sample import Sample
 
-# Создаём логгер на основе
-logger = get_logger()
-
 
 @flow(**main_flow_options)
 async def main_pipeline(
@@ -33,7 +30,9 @@ async def main_pipeline(
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
     
-
+    # Создаём логгер на основе
+    logger = get_logger()
+    
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
     # 1. Загрузка данных (Ваша логика из excel_handler)
