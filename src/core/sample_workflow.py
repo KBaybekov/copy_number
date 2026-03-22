@@ -152,12 +152,16 @@ async def sample_workflow(
                             sample.task_channels[stage_name].update({task_name:args})
                     print(sample.task_channels)
                     # Отправляем задачи на обработку
-                    for task_name, args in sample.task_channels[stage_name].items():
+                    stage_tasks = sample.task_channels[stage_name].copy()
+                    for task_name, args in stage_tasks.items():
                         task = handler.with_options(
                                                     task_run_name=f"[Task] {task_name}",
                                                     **prefect_stage_args
                                                    ).submit(sample=sample, **args)
                         # Обновляем списки с заданиями
+                        sample.task_channels[stage_name].pop(task_name)
+                        if not sample.task_channels[stage_name]:
+                            sample.task_channels.pop(stage_name)
                         for task_dict in [submitted_tasks, active_tasks]:
                             task_dict.update({task_name:task})
                         if stage_name not in task_statistics['running_stages']:
