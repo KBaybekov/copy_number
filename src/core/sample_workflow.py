@@ -200,10 +200,10 @@ async def sample_workflow(
                 finished_tasks.append(task_name)
                 just_finished_tasks.append(task_name)
                 # Удаляем из списка активных стадий ту, задание которой завершено
-                stage_name = next(
+                """stage_name = next(
                                   t for t in running_stage_tasks.keys()
                                   if task_name in running_stage_tasks[t]
-                                 )
+                                 )"""
                 print(f"task_name: {task_name}, stage_name: {stage_name}")
                 """running_stage_tasks[stage_name].remove(task_name)
                 if not running_stage_tasks[stage_name]:
