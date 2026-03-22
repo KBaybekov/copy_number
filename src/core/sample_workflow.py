@@ -55,6 +55,7 @@ async def sample_workflow(
         Возвращает список активных задач.
         """
         # 1. Собираем статистику
+        logger.debug(f"Task_statistics: {task_statistics}")
         for task_id, task in submitted_tasks.items():
             task_stats = task_statistics.get(task_id, {'is_final': False, 'status': ''})
             if task_stats['is_final']:
