@@ -55,7 +55,6 @@ async def sample_workflow(
         Возвращает список активных задач.
         """
         # 1. Собираем статистику
-        logger.debug(f"Task_statistics: {task_statistics}")
         for task_id, task in submitted_tasks.items():
             task_stats = task_statistics.get(task_id, {'is_final': False, 'status': ''})
             if task_stats['is_final']:
@@ -64,8 +63,11 @@ async def sample_workflow(
                 task_stats['is_final'] = task.state.is_final()
                 task_stats['status'] = task.state.name
                 task_statistics[task_id] = task_stats
-
-        finished_tasks = [t for t in task_statistics.values() if t.get('is_final')]
+        
+        logger.debug(f"Task_statistics: {task_statistics}")
+        # словарь неоднороден, поэтому вычленяем только данные заданий
+        only_task_stats = {k:v for k,v in task_statistics.items() if k != 'running_stages'}
+        finished_tasks = [t for k, t in only_task_stats.values() if t.get('is_final')]
 
         # 2. Формируем Markdown текст
         markdown_report = f"""
