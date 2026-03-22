@@ -67,7 +67,7 @@ async def sample_workflow(
         logger.debug(f"Task_statistics: {task_statistics}")
         # словарь неоднороден, поэтому вычленяем только данные заданий
         only_task_stats = {k:v for k,v in task_statistics.items() if k != 'running_stages'}
-        finished_tasks = [t for k, t in only_task_stats.values() if t.get('is_final')]
+        finished_tasks = [t for t in only_task_stats.values() if t.get('is_final')]
 
         # 2. Формируем Markdown текст
         markdown_report = f"""
