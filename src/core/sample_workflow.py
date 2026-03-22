@@ -203,7 +203,7 @@ async def sample_workflow(
                                   t for t in running_stage_tasks.keys()
                                   if task_name in running_stage_tasks[t]
                                  )
-                print(f"task_name: {task_name}")
+                print(f"task_name: {task_name}, stage_name: {stage_name}")
                 running_stage_tasks[stage_name].remove(task_name)
                 if not running_stage_tasks[stage_name]:
                     running_stage_tasks.pop(stage_name)
