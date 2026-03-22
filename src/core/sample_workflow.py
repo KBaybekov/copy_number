@@ -65,7 +65,7 @@ async def sample_workflow(
                 task_stats['status'] = task.state.name
                 task_statistics[task_id] = task_stats
 
-        finished_tasks = [t for t in task_statistics.values() if t['is_final']]
+        finished_tasks = [t for t in task_statistics.values() if t.get('is_final')]
 
         # 2. Формируем Markdown текст
         markdown_report = f"""
