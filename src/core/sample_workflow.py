@@ -136,9 +136,6 @@ async def sample_workflow(
                 if arg_factory is None:
                     logger.error(f"Отсутствует функция формирования аргументов для стадии обработки: {stage_name}")
                 else:
-                    # Создаём для каждой стадии список, если его ещё не было
-                    if stage_name not in sample.task_channels.keys():
-                        sample.task_channels[stage_name] = {}
                     # Получаем дефолтные аргументы для всех тасок стадии обработки
                     stage_args_default:dict = stage_data.get('args', {})
                     # Формируем путь к папкам стадии
@@ -148,6 +145,9 @@ async def sample_workflow(
                     new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, **stage_args_default)
                     # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
                     if new_stage_factories:
+                        # Создаём для каждой стадии список, если его ещё не было
+                        if stage_name not in sample.task_channels.keys():
+                            sample.task_channels[stage_name] = {}
                         for task_name, args in new_stage_factories.items():
                             if task_name not in sample.task_channels[stage_name]:
                                 sample.task_channels[stage_name].update({task_name:args})
