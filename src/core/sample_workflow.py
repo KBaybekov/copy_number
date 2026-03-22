@@ -180,10 +180,10 @@ async def sample_workflow(
         # Ждем завершения любой из запущенных стадий
         try:
             just_finished_tasks: List[str] = []
-            async for task in as_completed(list(active_tasks.values()), timeout=left_time):
+            for task in as_completed(list(active_tasks.values()), timeout=left_time):
                 task_name = next((k for k in active_tasks.keys() if active_tasks[k]==task), 'unknown')
                 # Получаем обновлённую копию Sample
-                changes, is_processing_ok = await task.result()
+                changes, is_processing_ok = await task
                 # Обновляем основной Sample
                 apply_changes(sample, changes)
                 sample.task_statuses[task_name] = "OK" if is_processing_ok else "FAIL"
