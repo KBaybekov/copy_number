@@ -70,12 +70,13 @@ async def sample_workflow(
         finished_tasks = [t for t in only_task_stats.values() if t.get('is_final')]
 
         # 2. Формируем Markdown текст
+        #**Запущенные стадии обработки:** {', '.join(task_statistics['running_stages'])}
         markdown_report = f"""
         ### 📊 Статистика выполнения задач
         **Всего задач:** {len(submitted_tasks)}
         **Завершено (Final):** {len(finished_tasks)}
         **В процессе:** {len(submitted_tasks) - len(finished_tasks)}
-        **Запущенные стадии обработки:** {', '.join(task_statistics['running_stages'])}
+        
 
 
         | Task ID | Status | Completed |
@@ -110,7 +111,7 @@ async def sample_workflow(
     submitted_tasks: Dict[str, PrefectFuture] = {}
     active_tasks: Dict[str, PrefectFuture] = {}
     finished_tasks: List[str] = []
-    task_statistics: Dict[str, Any] = {'running_stages':[]}
+    task_statistics: Dict[str, Any] = {} #{'running_stages':[]}
     # Запущенные стадии и id задач
     running_stage_tasks: Dict[str, List[str]] = {}
 
@@ -166,14 +167,14 @@ async def sample_workflow(
                                 sample.task_channels.pop(stage_name)
                             for task_dict in [submitted_tasks, active_tasks]:
                                 task_dict.update({task_name:task})
-                            if stage_name not in task_statistics['running_stages']:
-                                task_statistics['running_stages'].append(stage_name)
-                            if stage_name not in running_stage_tasks.keys():
+                            """if stage_name not in task_statistics['running_stages']:
+                                task_statistics['running_stages'].append(stage_name)"""
+                            """if stage_name not in running_stage_tasks.keys():
                                 running_stage_tasks[stage_name] = [task_name]
                             else:
                                 running_stage_tasks[stage_name].append(task_name)
-        print(f"running_stage_tasks: {running_stage_tasks}")
-        if not running_stage_tasks:
+        print(f"running_stage_tasks: {running_stage_tasks}")"""
+        if not active_tasks:
             # Если ничего не запущено и условий для запуска новых нет — выходим
             logger.info("Все стадии завершены, активных задач нет. Завершаем workflow.")
             sample.finished = True
@@ -204,10 +205,10 @@ async def sample_workflow(
                                   if task_name in running_stage_tasks[t]
                                  )
                 print(f"task_name: {task_name}, stage_name: {stage_name}")
-                running_stage_tasks[stage_name].remove(task_name)
+                """running_stage_tasks[stage_name].remove(task_name)
                 if not running_stage_tasks[stage_name]:
                     running_stage_tasks.pop(stage_name)
-                    task_statistics['running_stages'].remove(stage_name)
+                    task_statistics['running_stages'].remove(stage_name)"""
             for task in just_finished_tasks:
                 active_tasks.pop(task)
 
