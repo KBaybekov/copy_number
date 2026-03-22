@@ -48,7 +48,7 @@ STAGE_DEPENDENCIES = {
                                    'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT},
                                    'prefect_task_args': {
                                                          'description': 'Выравнивание .fastq файлов ONT',
-                                                         'timeout': ALIGNMENT_TIMEOUT,
+                                                         'timeout_seconds': ALIGNMENT_TIMEOUT,
                                                          'retries': 3,
                                                          'retry_delay_seconds': 20,
                                                          'tags': ['nanopore', 'alignment', 'cpu'],

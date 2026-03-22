@@ -40,7 +40,7 @@ STAGE_DEPENDENCIES = {
         'args': {},
         'prefect_task_args': {
             'description': 'Test stage 2',
-            'timeout': ALIGNMENT_TIMEOUT,
+            'timeout_seconds': ALIGNMENT_TIMEOUT,
             'retries': 1,
             'tags': ['test'],
         },
