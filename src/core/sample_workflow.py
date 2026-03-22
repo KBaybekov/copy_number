@@ -18,8 +18,6 @@ from modules.logger import get_logger
 # Функция принимает Sample и произвольные именованные аргументы (**kwargs)
 ArgFactory: TypeAlias = Callable[..., Dict[str, Dict[str, Any]]]
 
-logger = get_logger()
-
 now = datetime.now()
 formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S.%f")
 loop_duration = 10
@@ -46,6 +44,7 @@ async def sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
+    logger = get_logger()
 
     async def gather_task_statistics(
                                submitted_tasks: Dict[str, PrefectFuture],
