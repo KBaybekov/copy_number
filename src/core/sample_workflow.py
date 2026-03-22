@@ -151,7 +151,7 @@ async def sample_workflow(
                         for task_name, args in new_stage_factories.items():
                             if task_name not in sample.task_channels[stage_name]:
                                 sample.task_channels[stage_name].update({task_name:args})
-                    print(sample.task_channels)
+                    print(f"sample.task_channels: {sample.task_channels}")
                     # Отправляем задачи на обработку
                     if stage_name in sample.task_channels:
                         stage_tasks = sample.task_channels[stage_name].copy()
@@ -172,7 +172,7 @@ async def sample_workflow(
                                 running_stage_tasks[stage_name] = [task_name]
                             else:
                                 running_stage_tasks[stage_name].append(task_name)
-        
+        print(f"running_stage_tasks: {running_stage_tasks}")
         if not running_stage_tasks:
             # Если ничего не запущено и условий для запуска новых нет — выходим
             logger.info("Все стадии завершены, активных задач нет. Завершаем workflow.")
