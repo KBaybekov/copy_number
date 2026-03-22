@@ -21,33 +21,6 @@ from classes.sample import Sample
 logger = get_logger()
 
 
-'''@flow(name="Sample-Lifecycle-Mock")
-async def sample_workflow(sample: Sample) -> Sample:
-    """
-    Временная заглушка для тестирования Первого и Второго этажей.
-    Имитирует задержку и случайную ошибку.
-    """
-    import random
-    logger.info(f"Тестовая обработка образца {sample.id}...")
-    
-    # Имитируем долгую работу (например, проверку файлов)
-    await asyncio.sleep(random.uniform(1, 3))
-    
-    # Имитируем системную ошибку кода на 5% образцов для проверки устойчивости
-    if random.random() < 0.05:
-        logger.error(f"Критический сбой Python в потоке образца {sample.id}!")
-        raise RuntimeError(f"Системная ошибка при обработке {sample.id}")
-
-    # Имитируем штатный FAIL логики биоинформатики (через ваш метод fail)
-    if random.random() < 0.1:
-        sample.fail(stage_name="Initial_Check", reason="Имитация плохого качества данных")
-    else:
-        sample.success = True
-        logger.info(f"Образец {sample.id} успешно прошел тестовую стадию.")
-        
-    return sample
-'''
-
 @flow(**main_flow_options)
 async def main_pipeline(
                         table_input: str,

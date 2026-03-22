@@ -1,7 +1,6 @@
 from csv import DictReader, DictWriter
 from modules.logger import get_logger
 from . import is_file_exists_n_not_empty
-from config import RES_FOLDER, SAMPLE_CSV
 from pathlib import Path
 from typing import List, Optional
 import tempfile
@@ -13,6 +12,7 @@ CSV_WRITE_LOCK = Lock()
 logger = get_logger()
 
 def write_sample_data(sample_data:dict) -> None:
+    from config import RES_FOLDER, SAMPLE_CSV
     sample_csv = RES_FOLDER / SAMPLE_CSV
     sample_id = sample_data.get('id', 'unknown')
     fieldnames = list(sample_data.keys())

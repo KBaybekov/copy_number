@@ -1,122 +1,39 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import asyncio
-from typing import Any, Callable, Dict, List, cast, Coroutine, Tuple
+from typing import Any, Callable, Dict, List, cast, Coroutine, Tuple, TypeAlias
 from uuid import UUID
 from datetime import datetime
 
-from prefect import flow, task
+from prefect import flow
+from prefect.tasks import Task
 from prefect.futures import PrefectFuture, as_completed
 from prefect.runtime import flow_run
 from prefect.artifacts import create_markdown_artifact
 
-from classes.sample import Sample
-from config import STAGE_DEPENDENCIES, STAGE_CONDITIONS
+from classes.sample import Sample, apply_changes
+from config import STAGE_DEPENDENCIES
 from modules.logger import get_logger
-from modules.dataflow_stages import run_stage
+
+# Функция принимает Sample и произвольные именованные аргументы (**kwargs)
+ArgFactory: TypeAlias = Callable[..., Dict[str, Dict[str, Any]]]
 
 logger = get_logger()
 
 now = datetime.now()
 formatted_now = now.strftime("%d-%m-%Y_%H:%M:%S.%f")
-loop_duration = 5
+loop_duration = 10
 
-
-@task
-async def _run_pipeline_stage(
-    sample: Sample,
-    stage_name: str,
-    **kwargs
-) -> Sample:
-    """
-    Запускает одну стадию обработки образца в отдельном потоке.
-    """
-    logger.info(f"Запуск стадии '{stage_name}' для образца {sample.id}")
-    try:
-
-        # Запускаем синхронную функцию в потоке
-        updated_sample = await asyncio.to_thread(
-            run_stage,
-            sample=sample,
-            stage_name=stage_name,
-            **kwargs
-        )
-
-        if updated_sample.success:
-            logger.info(f"Стадия '{stage_name}' успешно завершена для {sample.id}")
-        else:
-            logger.warning(f"Стадия '{stage_name}' провалилась для {sample.id}")
-
-        return updated_sample
-
-    except Exception as e:
-        logger.error(f"Ошибка при выполнении стадии '{stage_name}' для {sample.id}: {e}", exc_info=True)
-        sample.fail(stage_name=stage_name, reason=str(e))
-        return sample
-    
-@task
-async def run_pipeline_stage(
-    sample: Sample,
-    stage_name: str,
-    **kwargs
-) -> Sample:
-    """
-    Запускает одну стадию обработки образца
-    """
-    try:
-        logger.info(f"Запуск стадии '{stage_name}' для образца {sample.id}")
-        stage_status = "FAIL"
-        processing_succesful = False
-        # Загружаем функцию обработки
-        handler: Callable[..., Tuple[Sample, bool]] | None = STAGE_DEPENDENCIES.get(stage_name, {}).get('handler')
-        if handler is None:
-            logger.error(f"Handler for stage '{stage_name}' not found in STAGE_DEPENDENCIES. Skipping.")
-        else:
-            # Загружаем функцию проверки валидности образца
-            sample_checker = STAGE_CONDITIONS.get(stage_name, lambda _: False)
-            while sample.success:
-                if sample_checker(sample):
-                    # проверяем, указаны ли основные рабочая и результирующая папки
-                    if all([
-                            sample.res_folder is not None,
-                            sample.work_folder is not None
-                        ]):
-                        # Создание папок для стадии обработки
-                        stage_dirs = []
-                        for d in [sample.work_folder, sample.res_folder]:
-                            f = d / stage_name # type: ignore
-                            f.mkdir(parents=True, exist_ok=True)
-                            stage_dirs.append(f)
-                    else:
-                        sample.fail(
-                                    stage_name=stage_name,
-                                    reason="Not set: res_folder/work_folder"
-                                )
-                        break
-                    # Все начальные проверки пройдены, запускаем логику для этой стадии
-                    sample, processing_succesful = await handler(
-                                                                 sample=sample,
-                                                                 stage_dirs=stage_dirs,
-                                                                 **kwargs
-                                                                )
-                # sample_checker покажет False, если проверка не пройдена 
-                # (либо образец не ок, либо обработка завершена и образец больше в ней не нуждается)
-                else:
-                    logger.info(f"Sample {sample.id} doesn't meet conditions for {stage_name} [anymore]")
-                    break
-            else:
-                logger.error(f'Sample {sample.id} is broken during "{stage_name}"')
-
-            if processing_succesful:
-                stage_status = "OK"
-        sample.stage_statuses[stage_name] = stage_status
-        return sample
-
-    except Exception as e:
-        logger.error(f"Ошибка при выполнении стадии '{stage_name}' для {sample.id}: {e}", exc_info=True)
-        sample.fail(stage_name=stage_name, reason=str(e))
-        return sample
+"""
+Идея реализации каналов:
+- Sample получает аттрибут task_channels: {stage: [task1_args_dict, task2_args_dict, ...]} (словарь аргументов включает и id будущей таски)
+- На этапе инициализации обработки мы наполняем task_channels с помощью специальных функций (каждая для своей стадии)
+- затем закидываем sample на обработку, по одной таске за раз
+- таска, отработав, кладёт в task_channels словарик с аргументами для таски, которая должна быть запущена после неё
+- с помощью as_completed мы меняем Sample с каждым завершившимся заданием
+- обновлённый Sample проходит через начальный цикл проверки условий для всех стадий
+- таким образом, мы не пропустим инициализацию заданий, не запускаемых другими заданиями (например, использующих объединённый результат выполнения нескольких задач)
+"""
 
 @flow
 async def sample_workflow(
@@ -131,7 +48,7 @@ async def sample_workflow(
     """
 
     async def gather_task_statistics(
-                               submitted_tasks: List[PrefectFuture],
+                               submitted_tasks: Dict[str, PrefectFuture],
                                task_statistics: Dict[str, Any]
                               ) -> Dict[str, Any]:
         """
@@ -139,8 +56,7 @@ async def sample_workflow(
         Возвращает список активных задач.
         """
         # 1. Собираем статистику
-        for task in submitted_tasks:
-            task_id = task.task_run_id.__str__()
+        for task_id, task in submitted_tasks.items():
             task_stats = task_statistics.get(task_id, {'is_final': False, 'status': ''})
             if task_stats['is_final']:
                 continue
@@ -179,18 +95,22 @@ async def sample_workflow(
     if not flow_params:
         logger.error("Контекст потока Prefect недоступен!")
         return sample
-        
+    
+    # Проверяем наличие рабочей и результирующей папок
+    if any([sample.res_folder is None, sample.work_folder is None]):
+        logger.error("Не указана рабочая/результирующая папка")
+        return sample
 
     logger.info(f"Запуск обработки образца {sample.id} через Prefect")
 
     # Список стадий, которые ещё не начаты
     stages = list(STAGE_DEPENDENCIES.keys())
-    submitted_tasks: List[PrefectFuture] = []
-    active_tasks: List[PrefectFuture] = []
+    submitted_tasks: Dict[str, PrefectFuture] = {}
+    active_tasks: Dict[str, PrefectFuture] = {}
     finished_tasks: List[str] = []
     task_statistics: Dict[str, Any] = {'running_stages':[]}
     # Запущенные стадии и id задач
-    running_stage_tasks: Dict[str, str] = {}
+    running_stage_tasks: Dict[str, List[str]] = {}
 
     while all([
                sample.success,
@@ -202,40 +122,52 @@ async def sample_workflow(
         start = datetime.now()
         # Проверяем, какие стадии можно запустить
         for stage_name in stages:
-            sample_suitable_for_stage = STAGE_CONDITIONS.get(stage_name, lambda _: False)
-            # Образец должен отвечать критериям, а стадия ранее не была запущена
-            if all([
-                    sample_suitable_for_stage(sample),
-                    stage_name not in running_stage_tasks
-                   ]):
-                logger.debug(f"creating task for {stage_name}")
-                stage_data = STAGE_DEPENDENCIES.get(stage_name)
-                # Задание запускаем, если прописаны условия для этой стадии
-                if stage_data is not None:
-                    # Получаем аргументы для самого задания обработки
-                    stage_args = stage_data.get('args', {})
-                    # Получаем параметры для таски Prefect
-                    prefect_task_args = stage_data.get('prefect_task_args', {})
-                    task = run_pipeline_stage.with_options(
-                                                           task_run_name=f"[Task] {stage_name} [{sample.id}]",
-                                                           tags=flow_params.get('tags', []),
-                                                           **prefect_task_args                                                        
-                                                          ).submit(
-                                                                   sample=sample,
-                                                                   stage_name=stage_name,
-                                                                   **stage_args
-                                                                  )
-                    # Добавляем задание в список отправленных на выполнение
-                    submitted_tasks.append(task)
-                    active_tasks.append(task)
-                    # Добавляем стадию в список запущенных
-                    running_stage_tasks[stage_name] = task.task_run_id.__str__()
-                    task_statistics['running_stages'].append(stage_name)
+            stage_data = STAGE_DEPENDENCIES.get(stage_name)
+            if stage_data is None:
+                logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")
+            else:
+                prefect_stage_args = stage_data.get('prefect_task_args', {})
+                handler: Task[..., Tuple[Dict[str, Dict[str, Any]], bool]] = STAGE_DEPENDENCIES.get(stage_name, {}).get('handler') # type: ignore
+                if handler is None:
+                    logger.error(f"Хэндлер для стадии '{stage_name}' не найден")
+                arg_factory: ArgFactory = stage_data.get('arg_factory') # type: ignore
+                if arg_factory is None:
+                    logger.error(f"Отсутствует функция формирования аргументов для стадии обработки: {stage_name}")
                 else:
-                    logger.error(f"Указана неверная стадия обработки: {stage_name}")
+                    # Создаём для каждой стадии список, если его ещё не было
+                    if stage_name not in sample.task_channels.keys():
+                        sample.task_channels[stage_name] = {}
+                    # Получаем дефолтные аргументы для всех тасок стадии обработки
+                    stage_args_default:dict = stage_data.get('args', {})
+                    # Формируем путь к папкам стадии
+                    stage_dirs = [d / stage_name for d in [sample.work_folder, sample.res_folder]] # type: ignore
+                    stage_args_default.update({'stage_dirs':stage_dirs})
+                    # Формируем список наборов аргументов
+                    new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, **stage_args_default)
+                    # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
+                    for task_name, args in new_stage_factories.items():
+                        if task_name not in sample.task_channels[stage_name]:
+                            sample.task_channels[stage_name].update({task_name:args})
+
+                    # Отправляем задачи на обработку
+                    for task_name, args in sample.task_channels[stage_name].items():
+                        task = handler.with_options(
+                                                    task_run_name=f"[Task] {task_name}",
+                                                    **prefect_stage_args
+                                                   ).submit(sample=sample, **args)
+                        # Обновляем списки с заданиями
+                        for task_dict in [submitted_tasks, active_tasks]:
+                            task_dict.update({task_name:task})
+                        if stage_name not in task_statistics['running_stages']:
+                            task_statistics['running_stages'].append(stage_name)
+                        if stage_name not in running_stage_tasks.keys():
+                            running_stage_tasks[stage_name] = [task_name]
+                        else:
+                            running_stage_tasks[stage_name].append(task_name)
         
         if not running_stage_tasks:
             # Если ничего не запущено и условий для запуска новых нет — выходим
+            logger.info("Все стадии завершены, активных задач нет. Завершаем workflow.")
             sample.finished = True
             break
 
@@ -243,22 +175,30 @@ async def sample_workflow(
         # Собираем статистику, выдерживаем паузу до следующего цикла
         task_statistics = await gather_task_statistics(submitted_tasks, task_statistics)
         
-        # 3. Ждем завершения любой из запущенных стадий
-        #done, _ = as_completed(active_tasks, timeout=left_time)
+        # Ждем завершения любой из запущенных стадий
         try:
-            just_finished_tasks: List[PrefectFuture] = []
-            for task in as_completed(active_tasks, timeout=left_time):
-                sample = await task.result()
+            just_finished_tasks: List[str] = []
+            for task in as_completed(list(active_tasks.values()), timeout=left_time):
+                task_name = next((k for k in active_tasks.keys() if active_tasks[k]==task), 'unknown')
+                # Получаем обновлённую копию Sample
+                changes, is_processing_ok = await task.result()
+                # Обновляем основной Sample
+                apply_changes(sample, changes)
+                sample.task_statuses[task_name] = "OK" if is_processing_ok else "FAIL"
                 # Обновляем списки заданий
-                task_id = task.task_run_id.__str__()
-                finished_tasks.append(task_id)
-                just_finished_tasks.append(task)
+                finished_tasks.append(task_name)
+                just_finished_tasks.append(task_name)
                 # Удаляем из списка активных стадий ту, задание которой завершено
-                stage_name = next(t for t in running_stage_tasks.keys() if running_stage_tasks[t] == task_id)
-                running_stage_tasks.pop(stage_name)
-                task_statistics['running_stages'].remove(stage_name)
+                stage_name = next(
+                                  t for t in running_stage_tasks.keys()
+                                  if task_name in running_stage_tasks[t]
+                                 )
+                running_stage_tasks[stage_name].remove(task_name)
+                if not running_stage_tasks[stage_name]:
+                    running_stage_tasks.pop(stage_name)
+                    task_statistics['running_stages'].remove(stage_name)
             for task in just_finished_tasks:
-                active_tasks.remove(task)
+                active_tasks.pop(task)
 
         except TimeoutError:
             logger.debug(f"Ни одна задача не завершилась за отведенное время [{left_time.__round__(2)} sec.]")
@@ -279,28 +219,3 @@ async def sample_workflow(
         logger.warning(f"Образец {sample.id} завершился с ошибкой.")
 
     return sample
-
-'''
-# Глобальный lock и множество занятых GPU ID
-gpu_lock = asyncio.Lock()
-used_gpu_ids: Set[int] = set()
-
-@task(name="Acquire GPU ID", retries=3, retry_delay_seconds=5)
-async def acquire_gpu_id() -> int | None:
-    """Захватывает свободный GPU ID для выполнения задачи."""
-    async with gpu_lock:
-        for gpu_id in AVAILABLE_GPU_IDS:
-            if gpu_id not in used_gpu_ids:
-                used_gpu_ids.add(gpu_id)
-                logger.info(f"Выделен GPU ID: {gpu_id}")
-                return gpu_id
-    return None
-
-
-@task(name="Release GPU ID")
-async def release_gpu_id(gpu_id: int):
-    """Освобождает GPU ID после завершения задачи."""
-    async with gpu_lock:
-        used_gpu_ids.discard(gpu_id)
-    logger.info(f"GPU ID освобождён: {gpu_id}")
-'''
