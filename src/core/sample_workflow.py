@@ -147,9 +147,10 @@ async def sample_workflow(
                     # Формируем список наборов аргументов
                     new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, **stage_args_default)
                     # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
-                    for task_name, args in new_stage_factories.items():
-                        if task_name not in sample.task_channels[stage_name]:
-                            sample.task_channels[stage_name].update({task_name:args})
+                    if new_stage_factories:
+                        for task_name, args in new_stage_factories.items():
+                            if task_name not in sample.task_channels[stage_name]:
+                                sample.task_channels[stage_name].update({task_name:args})
                     print(sample.task_channels)
                     # Отправляем задачи на обработку
                     stage_tasks = sample.task_channels[stage_name].copy()
