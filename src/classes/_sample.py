@@ -170,7 +170,6 @@ class Sample:
     status:str = field(default="")
     success:bool = field(default=True)
     finished:bool = field(default=False)
-    _lock:RLock = field(default_factory=RLock, repr=False, compare=False)
 
     # Опциональные аргументы
     db_id:str = field(default="") #from_dict
@@ -330,14 +329,11 @@ class Sample:
         return sample
     
     def to_dict(self) -> Dict[str, Any]:
-        with self._lock: # Защищаем чтение всех полей сразу
-            # Не используем asdict(self), так как он споткнется об RLock
-            # Просто берем все поля, кроме служебных
-            obj_dict = {
+        obj_dict = {
                 k: getattr(self, k) 
                 for k in self.__slots__ 
-                if k != '_lock'
             }
+            
 
         for k,v in obj_dict.items():
             match v:
@@ -455,12 +451,10 @@ class Sample:
              stage_name:str = "Unmarked_stage",
              reason:str = ""
             ) -> None:
-        # никаких дедлоков, т.к. _lock - ReentryLock
-        with self._lock:
-            self.success = False
-            self.finished = True
-            self.log_sample_data(stage_name, False, critical_error=True, fail_reason=reason)
-            return None
+        self.success = False
+        self.finished = True
+        self.log_sample_data(stage_name, False, critical_error=True, fail_reason=reason)
+        return None
 
     def log_sample_data(
                         self,
@@ -485,33 +479,32 @@ class Sample:
         line_no = caller_frame.lineno
         func_trace = f"{func_name}@{filename}:{line_no}"
 
-        with self._lock:
-            self.status = stage_name
-            self.fail_reason = fail_reason
+        self.status = stage_name
+        self.fail_reason = fail_reason
 
-            status_str = "FAIL"
-            reason_in_msg = f", reason: {fail_reason}"
-            log_severity = 30 # Warning
-            
-            match sample_ok, critical_error:
-                # everything fine
-                case True, False:
-                    log_severity = 10 # Debug
-                    reason_in_msg = ""
-                    status_str = "OK"
-                # something is broken
-                case False, False:
-                    self.errors[stage_name] = fail_reason
-                # sample is fucked up
-                case False, True:
-                    self.errors[stage_name] = fail_reason
-                    log_severity = 40 # Error
-                    self.success = False
-                    self.finished = True
-            self.task_statuses[stage_name] = status_str
-            msg = f"{status_str}: sample {self.id}, stage: {stage_name}{reason_in_msg}. Trace: {func_trace}"
-            logger.log(msg=msg, level=log_severity)
+        status_str = "FAIL"
+        reason_in_msg = f", reason: {fail_reason}"
+        log_severity = 30 # Warning
+        
+        match sample_ok, critical_error:
+            # everything fine
+            case True, False:
+                log_severity = 10 # Debug
+                reason_in_msg = ""
+                status_str = "OK"
+            # something is broken
+            case False, False:
+                self.errors[stage_name] = fail_reason
+            # sample is fucked up
+            case False, True:
+                self.errors[stage_name] = fail_reason
+                log_severity = 40 # Error
+                self.success = False
+                self.finished = True
+        self.task_statuses[stage_name] = status_str
+        msg = f"{status_str}: sample {self.id}, stage: {stage_name}{reason_in_msg}. Trace: {func_trace}"
+        logger.log(msg=msg, level=log_severity)
 
-            logger.debug(f"DATA_WRITING: sample {self.id}")
-            write_sample_data(self.to_dict())
-            return None
+        logger.debug(f"DATA_WRITING: sample {self.id}")
+        write_sample_data(self.to_dict())
+        return None

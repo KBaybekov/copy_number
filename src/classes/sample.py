@@ -109,7 +109,6 @@ class Sample:
     status: str = field(default="")
     success: bool = field(default=True)
     finished: bool = field(default=False)
-    _lock: RLock = field(default_factory=RLock, repr=False, compare=False)
 
     # Опциональные атрибуты (минимальный набор для тестов)
     group: str = field(default="")

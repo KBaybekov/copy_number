@@ -105,8 +105,7 @@ def alignment(
             bam = next((x for x in bam_dir.iterdir() if x.suffix == ".bam"), None)
             if bam is not None:
                 # SUCCESS
-                with sample._lock:
-                    sample.bams.add(bam)
+                sample.bams.add(bam)
                 logger.info(f"Sample {sample.id}: Alignment batch {batch_name}: success")
                 sample.log_sample_data(stage_name=stage_name, sample_ok=True)
             else:
