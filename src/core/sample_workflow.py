@@ -150,7 +150,7 @@ async def sample_workflow(
                     for task_name, args in new_stage_factories.items():
                         if task_name not in sample.task_channels[stage_name]:
                             sample.task_channels[stage_name].update({task_name:args})
-
+                    print(sample.task_channels)
                     # Отправляем задачи на обработку
                     for task_name, args in sample.task_channels[stage_name].items():
                         task = handler.with_options(
