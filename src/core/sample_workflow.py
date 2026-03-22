@@ -184,6 +184,7 @@ async def sample_workflow(
                 task_name = next((k for k in active_tasks.keys() if active_tasks[k]==task), 'unknown')
                 # Получаем обновлённую копию Sample
                 changes, is_processing_ok = task.result()
+                logger.debug(f"Changes: {changes}")
                 # Обновляем основной Sample
                 apply_changes(sample, changes)
                 sample.task_statuses[task_name] = "OK" if is_processing_ok else "FAIL"

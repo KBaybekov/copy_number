@@ -12,6 +12,7 @@ def process_input_data(sample_data: Tuple[Path, Optional[Path]]) -> List[Sample]
             work_folder=Path("/tmp/work"),
             res_folder=Path("/tmp/res"),
             fq_folders={Path("/fake/fastq_pass")},
+            value1=1
         )
         samples.append(sample)
     return samples

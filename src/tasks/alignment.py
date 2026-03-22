@@ -7,6 +7,8 @@ def alignment_arg_factory(sample: Sample, stage_dirs: List[Path], **kwargs) -> D
     """Генерирует тестовые задачи."""
     # Пример: если в sample есть поле value1, используем его для генерации задач
     # Для простоты всегда возвращаем одну задачу
+    if sample.value1 > 5:
+        return {}
     return {
         "test_task": {
             "stage_dirs": stage_dirs,
