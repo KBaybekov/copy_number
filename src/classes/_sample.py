@@ -32,7 +32,7 @@ def compute_diff(
     Поддерживает вложенные dataclass'ы, списки, множества, словари.
     """
     # Поля, которые нельзя изменять
-    protected_fields = {'processed_tasks', 'task_channels', 'task_statuses', 'finished'}
+    protected_fields = {'processed_tasks', 'task_channels', 'task_statuses'}
     diff = {}
 
     def _compute(

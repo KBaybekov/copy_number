@@ -9,7 +9,7 @@ T = TypeVar('T')
 
 # ------------------- compute_diff / apply_changes -------------------
 def compute_diff(base: T, new: T) -> Dict[str, Dict[str, Any]]:
-    protected_fields = {'processed_tasks', 'task_channels', 'task_statuses', 'finished'}
+    protected_fields = {'processed_tasks', 'task_channels', 'task_statuses'}
     diff = {}
 
     def _compute(base_obj: Any, new_obj: Any, field_name: Optional[str] = None) -> Dict[str, Any]:
