@@ -7,13 +7,14 @@ from datetime import datetime
 
 from prefect import flow
 from prefect.tasks import Task
-from prefect.futures import PrefectFuture, as_completed
+from prefect.futures import PrefectFuture
 from prefect.runtime import flow_run
 from prefect.artifacts import create_markdown_artifact
 
 from classes.sample import Sample, apply_changes
 from config import STAGE_DEPENDENCIES
 from modules.logger import get_logger
+from modules.prefect import collect_from_prefect, submit_to_prefect
 
 # Функция принимает Sample и произвольные именованные аргументы (**kwargs)
 ArgFactory: TypeAlias = Callable[..., Dict[str, Dict[str, Any]]]
@@ -33,7 +34,7 @@ loop_duration = 10
 - таким образом, мы не пропустим инициализацию заданий, не запускаемых другими заданиями (например, использующих объединённый результат выполнения нескольких задач)
 """
 
-@flow
+@flow(name="Standard Sample Workflow", version="03-2026")
 async def sample_workflow(
                           sample: Sample
                          ) -> Sample:
@@ -108,12 +109,10 @@ async def sample_workflow(
 
     # Список стадий, которые ещё не начаты
     stages = list(STAGE_DEPENDENCIES.keys())
-    submitted_tasks: Dict[str, PrefectFuture] = {}
-    active_tasks: Dict[str, PrefectFuture] = {}
+    submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
+    active_tasks: Dict[str, PrefectFuture|Coroutine] = {}
     finished_tasks: List[str] = []
-    task_statistics: Dict[str, Any] = {} #{'running_stages':[]}
-    # Запущенные стадии и id задач
-    running_stage_tasks: Dict[str, List[str]] = {}
+    task_statistics: Dict[str, Any] = {} # пока не используется
 
     while all([
                sample.success,
@@ -129,7 +128,8 @@ async def sample_workflow(
             if stage_data is None:
                 logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")
             else:
-                prefect_stage_args = stage_data.get('prefect_task_args', {})
+                prefect_task_args:Dict[str, Any] = stage_data.get('prefect_task_args', {})
+                prefect_flow_args:Dict[str, Any]|None = stage_data.get('prefect_flow_args')
                 handler: Task[..., Tuple[Dict[str, Dict[str, Any]], bool]] = STAGE_DEPENDENCIES.get(stage_name, {}).get('handler') # type: ignore
                 if handler is None:
                     logger.error(f"Хэндлер для стадии '{stage_name}' не найден")
@@ -157,23 +157,21 @@ async def sample_workflow(
                     if stage_name in sample.task_channels:
                         stage_tasks = sample.task_channels[stage_name].copy()
                         for task_name, args in stage_tasks.items():
-                            task = handler.with_options(
-                                                        task_run_name=f"[Task] {task_name}",
-                                                        **prefect_stage_args
-                                                    ).submit(sample=sample, **args)
+                            # Добавляем к аргументам образец и имя задания
+                            args.update({'sample':sample, 'task_name':task_name})
+                            task = submit_to_prefect(
+                                                     prefect_task_args=prefect_task_args,
+                                                     prefect_flow_args=prefect_flow_args,
+                                                     handler=handler,
+                                                     run_args=args
+                                                    )
+                            
                             # Обновляем списки с заданиями
                             sample.task_channels[stage_name].pop(task_name)
                             if not sample.task_channels[stage_name]:
                                 sample.task_channels.pop(stage_name)
                             for task_dict in [submitted_tasks, active_tasks]:
                                 task_dict.update({task_name:task})
-                            """if stage_name not in task_statistics['running_stages']:
-                                task_statistics['running_stages'].append(stage_name)"""
-                            """if stage_name not in running_stage_tasks.keys():
-                                running_stage_tasks[stage_name] = [task_name]
-                            else:
-                                running_stage_tasks[stage_name].append(task_name)
-        print(f"running_stage_tasks: {running_stage_tasks}")"""
         if not active_tasks:
             # Если ничего не запущено и условий для запуска новых нет — выходим
             logger.info("Все стадии завершены, активных задач нет. Завершаем workflow.")
@@ -182,37 +180,24 @@ async def sample_workflow(
 
         left_time = max(0, (loop_duration - (datetime.now() - start).total_seconds()))
         # Собираем статистику, выдерживаем паузу до следующего цикла
-        task_statistics = await gather_task_statistics(submitted_tasks, task_statistics)
+        #task_statistics = await gather_task_statistics(submitted_tasks, task_statistics)
         
-        # Ждем завершения любой из запущенных стадий
-        try:
-            just_finished_tasks: List[str] = []
-            for task in as_completed(list(active_tasks.values()), timeout=left_time):
-                task_name = next((k for k in active_tasks.keys() if active_tasks[k]==task), 'unknown')
-                # Получаем обновлённую копию Sample
-                changes, is_processing_ok = task.result()
-                print(f"Changes: {changes}")
+        # Ждем завершения любой из запущенных задач
+        just_finished_tasks: List[str] = []
+        completed_tasks = collect_from_prefect(active_tasks, left_time)
+        if completed_tasks:
+            for task_name, task_result in completed_tasks.items():
+                changes, is_processing_ok = task_result
+                print(f"Task: {task_name}\nChanges: {changes}\nProcessing successful: {is_processing_ok}")
                 # Обновляем основной Sample
                 apply_changes(sample, changes)
-                print(f"sample value1: {sample.value1}")
                 sample.task_statuses[task_name] = "OK" if is_processing_ok else "FAIL"
                 # Обновляем списки заданий
                 finished_tasks.append(task_name)
                 just_finished_tasks.append(task_name)
-                # Удаляем из списка активных стадий ту, задание которой завершено
-                """stage_name = next(
-                                  t for t in running_stage_tasks.keys()
-                                  if task_name in running_stage_tasks[t]
-                                 )"""
-                print(f"task_name: {task_name}, stage_name: {stage_name}")
-                """running_stage_tasks[stage_name].remove(task_name)
-                if not running_stage_tasks[stage_name]:
-                    running_stage_tasks.pop(stage_name)
-                    task_statistics['running_stages'].remove(stage_name)"""
             for task in just_finished_tasks:
                 active_tasks.pop(task)
-
-        except TimeoutError:
+        else:
             logger.debug(f"Ни одна задача не завершилась за отведенное время [{left_time.__round__(2)} sec.]")
 
     # Финализация
