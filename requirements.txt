@@ -1,2 +1,6 @@
+biopython
 pandas
 openpyxl
+tenacity
+prefect_shell
+pyyaml
