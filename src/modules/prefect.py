@@ -290,6 +290,7 @@ def submit_to_prefect(
     # Добываем имя задания
     task_name = run_args.pop('task_name')
     # Если предполагается
+    print(f"prefect_task_params:, {prefect_task_params}\nrun args: {run_args}\nprefect_subflow_params: {prefect_subflow_params}")
     match prefect_subflow_params:
         case dict():
             prefect_subflow_params.update({'flow_run_name':f"[Subflow] {task_name}"})
