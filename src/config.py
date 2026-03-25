@@ -61,7 +61,7 @@ DEFAULT_TASK_ARGS = {
                      'cache_key_fn': None,
                      'cache_expiration': None,
                      'cache_result_in_memory':None,
-                     'retries': None,
+                     'retries': 0,
                      'retry_condition_fn': None,
                      'retry_delay_seconds': 10,
                      'retry_jitter_factor': 0.5,
