@@ -1,9 +1,10 @@
 from classes.sample import Sample, compute_diff
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
-from modules.prefect import prepare_variable, run_nextflow_pipeline
 from modules.logger import get_logger
 from prefect import task
+
+from modules.prefect import get_result_from_subflow
 
 logger = get_logger()
 
@@ -46,9 +47,11 @@ def alignment(
               stage_dirs: List[Path],
               threads_per_alignment: int,
               fq_dir: Path,
-              batch_name: str
+              batch_name: str,
+              **subflow_params
              ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    nxf_asset = "epi2me-labs/wf-alignment"
+    pipeline = "epi2me-labs/wf-alignment"
+    cfg_template = "nxf_cfg_alignment_v1"
 
     # Сохраняем исходное состояние экземпляра
     old_sample = sample.copy()
@@ -56,51 +59,38 @@ def alignment(
     main_work_d, main_res_d = stage_dirs
 
     if fq_dir is not None and batch_name is not None:
+        # Подготовка данных
         stage_name = f"alignment_{batch_name}"
         bam_dir = main_res_d / batch_name
         work_dir = main_work_d / batch_name
         for d in [bam_dir, work_dir]:
             d.mkdir(mode=755, exist_ok=True, parents=True)
         bam_id = f"{sample.id}_{batch_name}"
+        cfg_file = bam_dir / f"nxf_alignment_{bam_id}.config"
         cfg_data = {
                     "fq_dir": fq_dir,
                     "bam_out_dir": bam_dir,
                     "prefix": f"{sample.id}_",
                     "alignment_threads": threads_per_alignment,
-                    "sample_work_dir": work_dir
+                    "sample_work_dir": work_dir,
+                    # служебные данные для запуска деплоя Nextflow
+                    "cfg_file": cfg_file,
+                    "cfg_template": cfg_template,
+                    "shell_working_dir": work_dir
                    }
-        cfg_file = bam_dir / f"nxf_alignment_{bam_id}.config"
-        # Формирование конфига для Nextflow
-        with open(cfg_file, 'w') as f:
-            config = prepare_variable(
-                                      variable_name='nxf_cfg_alignment_v1',
-                                      data=cfg_data
-                                     )
-            if config is not None:
-                f.write(config)
-            else:
-                reason = f"Nextflow config for alignment of batch {batch_name} not created"
-                sample.log_sample_data(
-                                       stage_name=stage_name,
-                                       sample_ok=False,
-                                       critical_error=False,
-                                       fail_reason=reason
-                                      )
-                diffs = compute_diff(old_sample, sample)
-                return (diffs, is_processing_ok)
-            
-        # Формирование команды для запуска Nextflow
-        log_path = work_dir / "nxf.log"
-        shell_data = {'commands': {
-                                   'log_path': log_path.as_posix(),
-                                   'pipeline_path': nxf_asset,
-                                   'nxf_config': cfg_file.as_posix(),
-                                   'profile': 'docker'
-                                  },
-                      'working_dir': work_dir
-                     }
-        # Выполнение команды
-        is_processing_ok, fail_desc = run_nextflow_pipeline(operation_data=shell_data)
+        run_parameters = {
+                          "pipeline":pipeline,
+                          "log": work_dir / "nxf.log",
+                          "configuration_parameters":cfg_data
+                         }
+
+        # Запуск пайплайна Nextflow и получение результата
+        is_processing_ok, fail_desc = get_result_from_subflow(
+                                                              deployment_name="nextflow_pipeline_cpu",
+                                                              run_parameters=run_parameters,
+                                                              subflow_parameters=subflow_params
+                                                            )
+        # Проверка результатов
         if is_processing_ok:
             bam = next((x for x in bam_dir.iterdir() if x.suffix == ".bam"), None)
             if bam is not None:
@@ -123,5 +113,6 @@ def alignment(
                                   )        
     else:
         sample.fail(stage_name='alignment_common', reason="not found appropriate fq_dir for alignment, but it has to be")
+    # Формирование словаря изменений образца
     diffs = compute_diff(old_sample, sample)
     return (diffs, is_processing_ok)

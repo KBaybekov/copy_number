@@ -1,5 +1,3 @@
-# ИСПОЛЬЗОВАТЬ В БУДУЩЕМ YAML ALIASES
-
 name: cyp2d6-copy
 prefect-version: 3.6.16
 
@@ -9,6 +7,7 @@ build:
     id: get-commit-hash
     script: git rev-parse --short HEAD
     stream_output: false
+# Билд для основного пайплайна CYP2D6:main_pipeline
 - prefect_docker.deployments.steps.build_docker_image:
     id: build-image
     requires: prefect-docker>=0.3.1
@@ -17,12 +16,27 @@ build:
     dockerfile: auto
     nocache: true
     platform: linux/amd64
+# Билд для деплоймента nextflow_pipeline_cpu
+- prefect_docker.deployments.steps.build_docker_image:
+    id: build-image-nextflow
+    requires: prefect-docker>=0.3.1
+    image_name: kbaybekov/cyp2d6-copy-nextflow
+    tag: "{{ get-commit-hash.stdout }}"
+    dockerfile: Dockerfile.nextflow   # пустой файл, просто FROM
+    nocache: true
+    platform: linux/amd64
 
 push:
+# Пуш для основного пайплайна CYP2D6:main_pipeline
 - prefect_docker.deployments.steps.push_docker_image:
     requires: prefect-docker>=0.3.1
     image_name: '{{ build-image.image_name }}'
     tag: '{{ build-image.tag }}'
+# Пуш для деплоймента nextflow_pipeline_cpu
+- prefect_docker.deployments.steps.push_docker_image:
+      requires: prefect-docker>=0.3.1
+      image_name: '{{ build-image-nextflow.image_name }}'
+      tag: '{{ build-image-nextflow.tag }}'
 
 # runtime steps
 pull:
@@ -67,6 +81,17 @@ deployments:
       limit: 50
       collision_strategy: ENQUEUE
       grace_period_seconds: 120 # время, за которое флоу должен развернуться и стартовать
+
+  - name: nextflow_pipeline_cpu
+    <<: *deployment-defaults
+    description: "Flow for processing Nextflow pipelines on CPU workers"
+    flow_name: "[CPU] Nextflow Runner"
+    entrypoint: src/modules/prefect.py:nextflow_pipeline_cpu
+    concurrency_limit:
+      limit: 50
+      collision_strategy: ENQUEUE
+      grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
+    tags: ['cpu', 'nextflow', 'subflow']
 
 
   - name: test_logsss

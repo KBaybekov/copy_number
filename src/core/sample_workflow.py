@@ -110,7 +110,7 @@ async def sample_workflow(
     # Список стадий, которые ещё не начаты
     stages = list(STAGE_DEPENDENCIES.keys())
     submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
-    active_tasks: Dict[str, PrefectFuture|Coroutine] = {}
+    active_tasks: Dict[str, PrefectFuture] = {}
     finished_tasks: List[str] = []
     task_statistics: Dict[str, Any] = {} # пока не используется
 
@@ -129,7 +129,7 @@ async def sample_workflow(
                 logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")
             else:
                 prefect_task_args:Dict[str, Any] = stage_data.get('prefect_task_args', {})
-                prefect_flow_args:Dict[str, Any]|None = stage_data.get('prefect_flow_args')
+                prefect_subflow_args:Dict[str, Any] = stage_data.get('prefect_subflow_args', {})
                 handler: Task[..., Tuple[Dict[str, Dict[str, Any]], bool]] = STAGE_DEPENDENCIES.get(stage_name, {}).get('handler') # type: ignore
                 if handler is None:
                     logger.error(f"Хэндлер для стадии '{stage_name}' не найден")
@@ -160,8 +160,8 @@ async def sample_workflow(
                             # Добавляем к аргументам образец и имя задания
                             args.update({'sample':sample, 'task_name':task_name})
                             task = submit_to_prefect(
-                                                     prefect_task_args=prefect_task_args,
-                                                     prefect_flow_args=prefect_flow_args,
+                                                     prefect_task_params=prefect_task_args,
+                                                     prefect_subflow_params=prefect_subflow_args,
                                                      handler=handler,
                                                      run_args=args
                                                     )
@@ -202,8 +202,6 @@ async def sample_workflow(
 
     # Финализация
     sample.finished = True
-    
-
     sample.log_sample_data(
         stage_name="Main_flow",
         sample_ok=sample.success,
