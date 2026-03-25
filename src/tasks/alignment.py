@@ -86,7 +86,7 @@ def alignment(
 
         # Запуск пайплайна Nextflow и получение результата
         is_processing_ok, fail_desc = get_result_from_subflow(
-                                                              deployment_name="nextflow_pipeline_cpu",
+                                                              deployment_name="[CPU] Nextflow Runner/nextflow_pipeline_cpu",
                                                               run_parameters=run_parameters,
                                                               subflow_parameters=subflow_params
                                                             )
