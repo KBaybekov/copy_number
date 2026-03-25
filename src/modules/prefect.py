@@ -15,7 +15,6 @@ from prefect.variables import Variable
 
 from modules.utils import interpret_exit_code, render_text
 from modules.logger import get_logger
-from config import CPUS_PER_WORKER, CPUS_MAX_LOAD_PERC, GPUS_PER_WORKER, RAM_PER_WORKER, RAM_MAX_LOAD_PERC
 
 # Конфигурация повторных попыток при запросе данных с сервера
 RETRY_SENSITIVE_ACTIONS = retry(
@@ -123,7 +122,7 @@ def prepare_shell_block(
     return block
                     
 # TODO Внедрить в код
-async def set_tag_gcl(tag:str, resource_type:str, demand:int | None = None) -> None:
+async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
     """
     Устанавливает/изменяет в Prefect глобальный concurrency лимит по тегу 
     (все задачи, запущенные с этим тегом, будут ограничены этим лимитом).
@@ -134,7 +133,9 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None = None) -> N
         demand: Количество единиц ресурса, необходимое для одной задачи.
                 Если None, лимит удаляется.
     """
+    from config import CPUS_PER_WORKER, CPUS_MAX_LOAD_PERC, GPUS_PER_WORKER, RAM_PER_WORKER, RAM_MAX_LOAD_PERC
     logger = get_logger()
+    
     @RETRY_TAG_ACTIONS
     async def create_or_update():
         try:

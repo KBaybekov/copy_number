@@ -3,18 +3,18 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import List, Optional, cast, Any, Coroutine
+from typing import Dict, List, Optional, cast, Any, Coroutine
 from uuid import UUID
-
 
 from prefect import flow
 from prefect.artifacts import create_markdown_artifact
 
 # Импорт кастомных модулей
-from config import main_flow_options
+from config import main_flow_options, STAGE_DEPENDENCIES
 from core.sample_workflow import sample_workflow
 from format_handlers.excel_handler import process_input_data
 from modules.logger import get_logger
+from modules.prefect import set_tag_gcl
 from classes.sample import Sample
 
 
@@ -32,6 +32,17 @@ async def main_pipeline(
     
     # Создаём логгер на основе
     logger = get_logger()
+
+    # Устанавливаем tag-based лимиты одновременной обработки
+    tag_limits:Dict[str, Dict[str, int|None]]
+    resource_type:str
+    demand:int|None
+    for stage_data in STAGE_DEPENDENCIES.values():
+        match stage_data:
+            case {'prefect_tag_limit': tag_limits}:
+                for tag in tag_limits.keys():
+                    for resource_type, demand in tag_limits[tag].items():
+                        await set_tag_gcl(tag=tag, resource_type=resource_type, demand=demand)
     
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
