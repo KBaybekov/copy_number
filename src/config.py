@@ -69,9 +69,9 @@ DEFAULT_TASK_ARGS = {
                      'result_storage': NotSet(),
                      'result_storage_key': NotSet(),
                      'log_prints': True,
-                     'on_completion': NotSet(),
-                     'on_failure': NotSet(),
-                     'refresh_cache': NotSet(),
+                     'on_completion': None,
+                     'on_failure': None,
+                     'refresh_cache': None,
                      'timeout_seconds':None,
                      'viz_return_value': None
                     }
