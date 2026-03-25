@@ -172,6 +172,7 @@ async def sample_workflow(
                                 sample.task_channels.pop(stage_name)
                             for task_dict in [submitted_tasks, active_tasks]:
                                 task_dict.update({task_name:task})
+                        del stage_tasks
         if not active_tasks:
             # Если ничего не запущено и условий для запуска новых нет — выходим
             logger.info("Все стадии завершены, активных задач нет. Завершаем workflow.")
@@ -191,7 +192,11 @@ async def sample_workflow(
                 print(f"Task: {task_name}\nChanges: {changes}\nProcessing successful: {is_processing_ok}")
                 # Обновляем основной Sample
                 apply_changes(sample, changes)
-                sample.task_statuses[task_name] = "OK" if is_processing_ok else "FAIL"
+                if is_processing_ok:
+                    sample.task_statuses[task_name] = "OK"
+                else:
+                    sample.task_statuses[task_name] = "FAIL"
+                    sample.success = False
                 # Обновляем списки заданий
                 finished_tasks.append(task_name)
                 just_finished_tasks.append(task_name)
