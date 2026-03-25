@@ -6,8 +6,6 @@ from prefect import task
 
 from modules.prefect import get_result_from_subflow
 
-logger = get_logger()
-
 def alignment_arg_factory(
                           sample: Sample,
                           stage_dirs: List[Path],
@@ -50,6 +48,8 @@ def alignment(
               batch_name: str,
               **subflow_params
              ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
+    logger = get_logger()
+
     pipeline = "epi2me-labs/wf-alignment"
     cfg_template = "nxf_cfg_alignment_v1"
 
