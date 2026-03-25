@@ -14,6 +14,8 @@ from datetime import datetime
 from pathlib import Path
 from os import getenv
 
+from modules.utils import sanitize_artifact_key
+
 LOG_FOLDER = Path(getenv('LOG_FOLDER', '.logs/'))
 SERVER_IP = getenv('SERVER_IP', 'localhost')
 if SERVER_IP != 'localhost':
@@ -96,8 +98,9 @@ def get_logger():
             handler.setLevel(logging.INFO)
     print(logger.logger.handlers)"""
         
+    safe_key = sanitize_artifact_key(raw_key=f"{ctx.flow.name}-logs")
     create_link_artifact(
-                         key=f"{ctx.flow.name}-logs",  # общий ключ для всех запусков флоу
+                         key=safe_key,  # общий ключ для всех запусков флоу
                          # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
                          # (в Apache2 прописан алиас к LOG_FOLDER) 
                          link=f"{SERVER_IP}/{log_filepath.resolve().as_posix().replace(LOG_FOLDER.as_posix(), 'logs')}", 

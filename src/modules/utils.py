@@ -1,5 +1,22 @@
 from jinja2 import Template
 from typing import Tuple
+import re
+
+def sanitize_artifact_key(raw_key: str) -> str:
+    """
+    Преобразует строку в безопасный ключ артефакта для Prefect.
+    Допустимы только строчные буквы, цифры и дефисы.
+    """
+    # Приводим к нижнему регистру
+    key = raw_key.lower()
+    # Заменяем любые символы, кроме a-z, 0-9 и дефиса, на дефис
+    key = re.sub(r'[^a-z0-9-]', '-', key)
+    # Убираем повторяющиеся дефисы
+    key = re.sub(r'-+', '-', key)
+    # Удаляем дефисы в начале и конце
+    key = key.strip('-')
+    # Если строка пуста, возвращаем запасной вариант
+    return key or 'empty-key'
 
 def render_text(template:str, data:dict) -> str:
     """
