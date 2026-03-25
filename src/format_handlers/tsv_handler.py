@@ -9,9 +9,10 @@ from threading import Lock
 
 CSV_WRITE_LOCK = Lock()
 
-logger = get_logger()
 
 def write_sample_data(sample_data:dict) -> None:
+    logger = get_logger()
+
     from config import RES_FOLDER, SAMPLE_CSV
     sample_csv = RES_FOLDER / SAMPLE_CSV
     sample_id = sample_data.get('id', 'unknown')
@@ -79,6 +80,8 @@ def form_nxf_tsv(data_dict: dict|List[dict], filepath: Path) -> Optional[Path]:
     Ключи словаря становятся заголовками, значения — строкой.
     Если данных несколько, ожидается список словарей.
     """
+    logger = get_logger()
+
     # Гарантируем, что работаем со списком (даже если передан один объект)
     if isinstance(data_dict, dict):
         data = [data_dict]

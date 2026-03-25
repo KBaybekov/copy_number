@@ -5,8 +5,6 @@ from . import is_file_exists_n_not_empty
 from jinja2 import Template
 from modules.logger import get_logger
 
-logger = get_logger()
-
 def form_nxf_cfg(
                  template:str,
                  data:dict,
@@ -16,6 +14,7 @@ def form_nxf_cfg(
     Формирует файл конфигурации Nextflow для конкретного этапа на основе шаблона и данных.
     Данные вида: {Ключевое слово в шаблоне : значение в образце}
     """
+    logger = get_logger()
     if not output_filepath.parent.exists():
         output_filepath.parent.mkdir(parents=True, exist_ok=True)
     with open(output_filepath, 'w') as f:

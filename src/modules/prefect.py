@@ -17,8 +17,6 @@ from modules.utils import interpret_exit_code, render_text
 from modules.logger import get_logger
 from config import CPUS_PER_WORKER, CPUS_MAX_LOAD_PERC, GPUS_PER_WORKER, RAM_PER_WORKER, RAM_MAX_LOAD_PERC
 
-logger = get_logger()
-
 # Конфигурация повторных попыток при запросе данных с сервера
 RETRY_SENSITIVE_ACTIONS = retry(
        stop=stop_after_attempt(3), 
@@ -65,6 +63,7 @@ def prepare_shell_block(
     В случае, если в передаваемых данных есть словарь, его ключи и значения должны быть строками.
     Разделы: env[dict], shell[str], commands[dict], extension[str], working_dir[Path], stream_output[bool].
     """
+    logger = get_logger()
     block = get_prefect_shell_block(block_name)
     if isinstance(block, ShellOperation):
         if data is not None:
@@ -135,6 +134,7 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None = None) -> N
         demand: Количество единиц ресурса, необходимое для одной задачи.
                 Если None, лимит удаляется.
     """
+    logger = get_logger()
     @RETRY_TAG_ACTIONS
     async def create_or_update():
         try:
