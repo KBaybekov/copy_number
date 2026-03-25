@@ -8,7 +8,6 @@ from inspect import stack
 
 T = TypeVar('T')
 
-logger = get_logger()
 
 RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/')
 ONT_FOLDER = Path('/mnt/cephfs8_ro/nanopore/')
@@ -468,7 +467,8 @@ class Sample:
                         critical_error:bool=False,
                         fail_reason:str = ""
                        ) -> None:
-        
+        logger = get_logger()
+
         # Получаем стек вызовов
         func_stack = stack()
         # [1] — это предыдущий фрейм (откуда вызвали)
