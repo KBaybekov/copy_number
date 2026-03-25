@@ -149,6 +149,5 @@ for stage, stage_options in STAGE_DEPENDENCIES.items():
                       new_args['tags'].extend(list(STAGE_DEPENDENCIES[stage]['prefect_tag_limit'].keys()))
                       new_args['tags'] = list(set(new_args['tags']))
                       STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
-                STAGE_DEPENDENCIES[stage]['prefect_task_args'].extend
             case _:
               continue
