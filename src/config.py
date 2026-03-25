@@ -57,13 +57,22 @@ DEFAULT_SUBFLOW_ARGS = {
                        }
 
 DEFAULT_TASK_ARGS = {
+                     'cache_policy': NotSet,
                      'cache_key_fn': None,
                      'cache_expiration': None,
+                     'cache_result_in_memory':None,
+                     'retries': 3,
+                     'retry_condition_fn': None,
+                     'retry_delay_seconds': 10,
                      'retry_jitter_factor': 0.5,
+                     'persist_result': NotSet,
+                     'result_storage': NotSet,
                      'result_storage_key': NotSet,
                      'log_prints': True,
+                     'on_completion': NotSet,
+                     'on_failure': NotSet,
                      'refresh_cache': NotSet,
-                     'retry_condition_fn': None,
+                     'timeout_seconds':None,
                      'viz_return_value': None
                     }
 
