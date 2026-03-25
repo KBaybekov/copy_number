@@ -4,12 +4,18 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Set, TypeVar
 from modules.logger import get_logger
 from format_handlers.tsv_handler import write_sample_data
-from config import ONT_FOLDER, RES_FOLDER, RAW_DATA_THRESHOLD, BASECALLED_DATA_THRESHOLD
 from inspect import stack
 
 T = TypeVar('T')
 
 logger = get_logger()
+
+RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/')
+ONT_FOLDER = Path('/mnt/cephfs8_ro/nanopore/')
+# ~FASTQ*8
+RAW_DATA_THRESHOLD = 528
+# FASTQ Cov >= 20
+BASECALLED_DATA_THRESHOLD = 66
 
 def get_files_sizes_in_Gb(
                           subdir:Path,

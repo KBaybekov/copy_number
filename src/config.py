@@ -8,14 +8,7 @@ from prefect.utilities.annotations import NotSet
 
 from tasks.alignment import alignment, alignment_arg_factory
 
-RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/')
-SAMPLE_CSV = 'CYP2D6_samples.tsv'
-ONT_FOLDER = Path('/mnt/cephfs8_ro/nanopore/')
-# ~FASTQ*8
-RAW_DATA_THRESHOLD = 528
-# FASTQ Cov >= 20
-BASECALLED_DATA_THRESHOLD = 66
-
+SAMPLE_CSV = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/CYP2D6_samples.tsv')
 
 # Настройки ограничений
   # CPU

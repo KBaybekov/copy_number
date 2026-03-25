@@ -13,8 +13,8 @@ CSV_WRITE_LOCK = Lock()
 def write_sample_data(sample_data:dict) -> None:
     logger = get_logger()
 
-    from config import RES_FOLDER, SAMPLE_CSV
-    sample_csv = RES_FOLDER / SAMPLE_CSV
+    from config import SAMPLE_CSV
+    sample_csv = SAMPLE_CSV
     sample_id = sample_data.get('id', 'unknown')
     fieldnames = list(sample_data.keys())
     if sample_id != 'unknown':
