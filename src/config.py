@@ -47,13 +47,9 @@ main_flow_options.update({
                          })
 
 # Аргументы по умолчанию для флоу/тасок заданий
-DEFAULT_COMMON_ARGS = {
-                       'tags':['nanopore', 'cyp2d6_cnv']
-                      }
-
-# Базовые аргументы для запуска сабфлоу из других деплойментов
 DEFAULT_SUBFLOW_ARGS = {
-                        'as_subflow': True
+                        'as_subflow': True,
+                        'tags':['nanopore', 'cyp2d6_cnv']
                        }
 
 DEFAULT_TASK_ARGS = {
@@ -65,6 +61,7 @@ DEFAULT_TASK_ARGS = {
                      'retry_condition_fn': None,
                      'retry_delay_seconds': 10,
                      'retry_jitter_factor': 0.5,
+                     'tags':['nanopore', 'cyp2d6_cnv'],
                      'persist_result': False,
                      'result_storage': None,
                      'result_storage_key': None,
@@ -98,10 +95,8 @@ STAGE_DEPENDENCIES = {
                                   }
                      }
 
-# Формирование полного набора стандартных аргументов для флоу/тасок
-full_default_task_args = DEFAULT_COMMON_ARGS | DEFAULT_TASK_ARGS
-full_default_subflow_args = DEFAULT_COMMON_ARGS | DEFAULT_SUBFLOW_ARGS
-for stage, stage_options in STAGE_DEPENDENCIES.items():
+
+"""for stage, stage_options in STAGE_DEPENDENCIES.items():
     for arg_type, arg_value in stage_options.items():
         match arg_type:
             case 'prefect_subflow_args':
@@ -120,5 +115,40 @@ for stage, stage_options in STAGE_DEPENDENCIES.items():
                       new_args = full_default_task_args.copy()
                       new_args.update(arg_value)
                       STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
+            case _:
+              continue
+  """         
+
+for stage, stage_options in STAGE_DEPENDENCIES.items():
+    for arg_type in stage_options.keys():
+        match arg_type:
+            case 'prefect_subflow_args':
+                stage_subflow_args = STAGE_DEPENDENCIES[stage][arg_type]
+                match stage_subflow_args:
+                  case None | {}:
+                    STAGE_DEPENDENCIES[stage].update({arg_type:DEFAULT_SUBFLOW_ARGS})
+                  case dict():
+                      new_args = DEFAULT_SUBFLOW_ARGS.copy()
+                      new_args.update(stage_subflow_args)
+                      if 'tags' not in new_args.keys():
+                         new_args['tags'] = []
+                      new_args['tags'].extend(DEFAULT_SUBFLOW_ARGS.get('tags', []))
+                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
+                      
+            case 'prefect_task_args':
+                stage_task_args = STAGE_DEPENDENCIES[stage][arg_type]
+                match stage_task_args:
+                  case None | {}:
+                    STAGE_DEPENDENCIES[stage].update({arg_type:DEFAULT_TASK_ARGS})
+                  case dict():
+                      new_args = DEFAULT_TASK_ARGS.copy()
+                      new_args.update(stage_task_args)
+                      if 'tags' not in new_args.keys():
+                         new_args['tags'] = []
+                      new_args['tags'].extend(stage_task_args.get('tags', []))
+                      new_args['tags'].extend(list(STAGE_DEPENDENCIES[stage]['prefect_tag_limit'].keys()))
+                      new_args['tags'] = list(set(new_args['tags']))
+                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
+                STAGE_DEPENDENCIES[stage]['prefect_task_args'].extend
             case _:
               continue
