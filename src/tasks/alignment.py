@@ -74,7 +74,7 @@ def alignment(
                         "fq_dir": fq_dir,
                         "bam_out_dir": bam_dir,
                         "prefix": f"{sample.id}_",
-                        "alignment_threads": threads_per_alignment,
+                        "threads_per_alignment": threads_per_alignment,
                         "sample_work_dir": work_dir,
                         # служебные данные для запуска деплоя Nextflow
                         "cfg_file": cfg_file,

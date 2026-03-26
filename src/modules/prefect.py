@@ -238,6 +238,8 @@ def get_result_from_subflow(
     Returns:
         Результаты выполнения сабфлоу
     """
+    # Сериализуем передаваемые в другой флоу данные
+    
     subflow = run_deployment(
                              name=deployment_name,
                              parameters=run_parameters,

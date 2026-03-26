@@ -48,21 +48,22 @@ LOADED_PREFECT_VARS = {var:get_prefect_variable(var) for var in prefect_vars}
 
 @flow
 async def nextflow_pipeline_cpu(
-                          pipeline:Path|str,
-                          log:Path,
+                          pipeline:str,
+                          log:str,
                           configuration_parameters:Dict[str, Any]
                          ) -> Tuple[bool, str]:
     """
     Запуск пайплайна Nextflow через отдельный деплой.
     Args:
         pipeline: название пайплайна или путь к папке, содержащей main.nf
-        log: Path-объект файла лога
+        log: str-объект файла лога
         configuration_parameters:
-            словарь, содержащий параметры пайплайна.\n
+            словарь, содержащий параметры пайплайна. При передаче между флоу все объекты сериализуются,
+            поэтому исходим из того, что перед нами обычные числа, строки и списки.\n
             **ДОЛЖЕН** содержать:
-                - 'cfg_file' - Path-объект для сохранения конфигурации пайплайна
-                - 'cfg_template' - Prefect-переменная, содержащая шаблон конфигурации
-                - 'shell_working_dir' - Path-объект, путь рабочей директории
+                - 'cfg_file' - str-объект для сохранения конфигурации пайплайна
+                - 'cfg_template' - имя Prefect-переменной, содержащей шаблон конфигурации
+                - 'shell_working_dir' - str-объект, путь рабочей директории
             **ОПЦИОНАЛЬНО**:
                 - 'cmds_before' - список str-команд, выполняемых до запуска Nextflow
                 - 'cmds_after' - список str-команд, выполняемых после запуска Nextflow
@@ -73,9 +74,9 @@ async def nextflow_pipeline_cpu(
         а второй — сообщение об ошибке (пустая строка при успехе).
     """
     # Извлекаем обязательные и опциональные аргументы для запуска
-    cfg_file:Path = configuration_parameters.pop('cfg_file')
+    cfg_file:str = configuration_parameters.pop('cfg_file')
     cfg_template:str = configuration_parameters.pop('cfg_template')
-    shell_working_dir:Path = configuration_parameters.pop('shell_working_dir')
+    shell_working_dir:str = configuration_parameters.pop('shell_working_dir')
     optional_shell_args = {}
     for arg in ['cmds_before', 'cmds_after', 'env']:
         try:
@@ -99,9 +100,9 @@ async def nextflow_pipeline_cpu(
 
     # Формируем данные для заполнения шаблона
     cmd_data = {
-                "log_path": log.as_posix(),
+                "log_path": log,
                 "pipeline":pipeline,
-                "nxf_cfg": cfg_file.as_posix()
+                "nxf_cfg": cfg_file
                }
 
     # Формируем shell-команду
@@ -116,7 +117,7 @@ async def nextflow_pipeline_cpu(
     shell_op = ShellOperation(
                               commands=shell_cmds,
                               env=optional_shell_args.get('env', {}),
-                              working_dir=shell_working_dir,
+                              working_dir=Path(shell_working_dir),
                               stream_output=True
                              )
     # Запускаем процесс
