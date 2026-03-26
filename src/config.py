@@ -75,7 +75,7 @@ DEFAULT_TASK_ARGS = {
 
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
-STAGE_DEPENDENCIES = {
+PRE_STAGE_DEPENDIES = {
                       'alignment':{
                                    'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT},
                                    'prefect_subflow_args': None,
@@ -119,36 +119,38 @@ STAGE_DEPENDENCIES = {
               continue
   """         
 
-for stage, stage_options in STAGE_DEPENDENCIES.items():
+for stage, stage_options in PRE_STAGE_DEPENDIES.items():
     for arg_type in stage_options.keys():
         match arg_type:
             case 'prefect_subflow_args':
-                stage_subflow_args = STAGE_DEPENDENCIES[stage][arg_type]
+                stage_subflow_args = PRE_STAGE_DEPENDIES[stage][arg_type]
                 match stage_subflow_args:
                   case None | {}:
-                    STAGE_DEPENDENCIES[stage].update({arg_type:DEFAULT_SUBFLOW_ARGS})
+                    PRE_STAGE_DEPENDIES[stage].update({arg_type:DEFAULT_SUBFLOW_ARGS})
                   case dict():
                       new_args = DEFAULT_SUBFLOW_ARGS.copy()
                       new_args.update(stage_subflow_args)
                       if 'tags' not in new_args.keys():
                          new_args['tags'] = []
                       new_args['tags'].extend(DEFAULT_SUBFLOW_ARGS.get('tags', []))
-                      new_args['tags'].extend([tag for tag, val in STAGE_DEPENDENCIES[stage]['prefect_tag_limit'].items() if val is not None])
-                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
+                      new_args['tags'].extend([tag for tag, val in PRE_STAGE_DEPENDIES[stage]['prefect_tag_limit'].items() if val is not None])
+                      PRE_STAGE_DEPENDIES[stage].update({arg_type:new_args})
                       
             case 'prefect_task_args':
-                stage_task_args = STAGE_DEPENDENCIES[stage][arg_type]
+                stage_task_args = PRE_STAGE_DEPENDIES[stage][arg_type]
                 match stage_task_args:
                   case None | {}:
-                    STAGE_DEPENDENCIES[stage].update({arg_type:DEFAULT_TASK_ARGS})
+                    PRE_STAGE_DEPENDIES[stage].update({arg_type:DEFAULT_TASK_ARGS})
                   case dict():
                       new_args = DEFAULT_TASK_ARGS.copy()
                       new_args.update(stage_task_args)
                       if 'tags' not in new_args.keys():
                          new_args['tags'] = []
                       new_args['tags'].extend(stage_task_args.get('tags', []))
-                      new_args['tags'].extend(list(STAGE_DEPENDENCIES[stage]['prefect_tag_limit'].keys()))
+                      new_args['tags'].extend(list(PRE_STAGE_DEPENDIES[stage]['prefect_tag_limit'].keys()))
                       new_args['tags'] = list(set(new_args['tags']))
-                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
+                      PRE_STAGE_DEPENDIES[stage].update({arg_type:new_args})
             case _:
               continue
+
+STAGE_DEPENDENCIES = PRE_STAGE_DEPENDIES.copy()
