@@ -4,7 +4,7 @@ RUN mkdir -p /opt/prefect/
 
 WORKDIR /opt/prefect/
 
-COPY requirements_nextflow.txt .
+COPY requirements_nextflow.txt /tmp
 
 RUN yum install -y python3-pip \
-    && pip install --no-cache-dir -r requirements_nextflow.txt
+    && pip install --no-cache-dir -r /tmp/requirements_nextflow.txt
