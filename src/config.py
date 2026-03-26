@@ -133,6 +133,7 @@ for stage, stage_options in STAGE_DEPENDENCIES.items():
                       if 'tags' not in new_args.keys():
                          new_args['tags'] = []
                       new_args['tags'].extend(DEFAULT_SUBFLOW_ARGS.get('tags', []))
+                      new_args['tags'].extend([tag for tag, val in STAGE_DEPENDENCIES[stage]['prefect_tag_limit'].items() if val is not None])
                       STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
                       
             case 'prefect_task_args':
