@@ -35,21 +35,18 @@ pull:
       directory: "{{ clone-step.directory }}" # `clone-step` is a user-provided `id` field
       requirements_file: requirements_nextflow.txt
 
-x-deployment-nextflow: &deployment-nextflow
-  version: '{{ build-image-nextflow.tag }}'
-  schedules: []
-  tags: ['cpu', 'nextflow', 'subflow']
-  work_pool:
-    name: nanopore_docker_pool
-    work_queue_name: cpu_nodes
-  job_variables:
-    image: "{{ build-image-nextflow.image }}"
-    image_pull_policy: "Always"
-
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
   - name: nextflow_pipeline_cpu
-    <<: *deployment-nextflow
+    version: '{{ build-image-nextflow.tag }}'
+    schedules: []
+    tags: ['cpu', 'nextflow', 'subflow']
+    work_pool:
+      name: nanopore_docker_pool
+      work_queue_name: cpu_nodes
+    job_variables:
+      image: "{{ build-image-nextflow.image }}"
+      image_pull_policy: "Always"
     description: "Flow for processing Nextflow pipelines on CPU workers"
     flow_name: "[CPU] Nextflow Runner"
     entrypoint: src/flows/nextflow_pipeline_cpu.py:nextflow_pipeline_cpu
