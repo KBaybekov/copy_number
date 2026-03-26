@@ -4,6 +4,8 @@ RUN mkdir -p /opt/prefect
 
 WORKDIR /opt/prefect
 
+COPY src/ .
+
 COPY requirements.txt .
 
 RUN yum install -y python3-pip \
