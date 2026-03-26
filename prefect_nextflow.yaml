@@ -53,3 +53,5 @@ deployments:
       limit: 50
       collision_strategy: ENQUEUE
       grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
+    env:
+      NXF_HOME: /mnt/cephfs8_rw/nanopore2/service/nextflow/
