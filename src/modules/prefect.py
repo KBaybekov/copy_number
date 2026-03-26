@@ -177,7 +177,7 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
     return None
 
 @flow
-def nextflow_pipeline_cpu(
+async def nextflow_pipeline_cpu(
                           pipeline:Path|str,
                           log:Path,
                           configuration_parameters:Dict[str, Any]
@@ -252,7 +252,7 @@ def nextflow_pipeline_cpu(
     # Запускаем процесс
     process = shell_op.trigger() # type: ignore
     # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-    process.wait_for_completion() # type: ignore
+    await process.wait_for_completion() # type: ignore
     return_code:int = process.return_code # type: ignore
     return interpret_exit_code(return_code)
 
