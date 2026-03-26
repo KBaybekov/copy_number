@@ -28,12 +28,13 @@ def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
         Кортеж, где первый элемент — флаг успеха (True/False), 
         а второй — сообщение об ошибке (пустая строка при успехе).
     """
-    if exit_code == 0:
-        return (True, '')
-    elif exit_code == 127:
-        return (False, 'Command not found')
-    else:
-        return (False, f'Processing failed, exitcode: {exit_code}')
+    match exit_code:
+        case 0:
+            return (True, '')
+        case 127:
+            return (False, 'Command not found')
+        case _:
+            return (False, f'Processing failed, exitcode: {exit_code}')
 
 def render_text(template:str, data:dict) -> str:
     """
@@ -81,9 +82,10 @@ async def nextflow_pipeline_cpu(
         try:
             arg_val = configuration_parameters.pop(arg)
         except KeyError:
-            if arg == 'env':
-                arg_val = {}
-            else:
+            match arg:
+                case 'env':
+                    arg_val = {}
+                case _:
                     arg_val = []
         optional_shell_args.update({arg:arg_val})
     
