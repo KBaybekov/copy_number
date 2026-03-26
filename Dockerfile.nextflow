@@ -1,7 +1,11 @@
 FROM python:3.13-slim
 
 # Установка Java (Nextflow требует Java 8 или выше)
-RUN apt-get update && apt-get install -y openjdk-21-jdk-headless curl && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y \
+    openjdk-21-jdk-headless \
+    curl \
+    git \
+    && rm -rf /var/lib/apt/lists/*
 
 # Установка Nextflow
 RUN curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/
@@ -15,7 +19,4 @@ WORKDIR /opt/prefect/
 
 COPY requirements_nextflow.txt /tmp
 
-RUN yum install -y \
-    python3-pip \
-    git \
-    && pip install --no-cache-dir -r /tmp/requirements_nextflow.txt
+RUN pip install --no-cache-dir -r /tmp/requirements_nextflow.txt
