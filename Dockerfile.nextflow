@@ -1,8 +1,10 @@
 FROM nextflow/nextflow:25.10.4
 
-#RUN mkdir -p /opt/prefect/
+RUN mkdir -p /opt/prefect/
 
-#WORKDIR /opt/prefect/
+COPY ./src /opt/prefect/
+
+WORKDIR /opt/prefect/
 
 COPY requirements_nextflow.txt .
 
