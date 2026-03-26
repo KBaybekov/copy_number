@@ -118,7 +118,7 @@ PRE_STAGE_DEPENDIES = {
             case _:
               continue
   """         
-
+"""
 for stage, stage_options in PRE_STAGE_DEPENDIES.items():
     for arg_type in stage_options.keys():
         match arg_type:
@@ -152,5 +152,44 @@ for stage, stage_options in PRE_STAGE_DEPENDIES.items():
                       PRE_STAGE_DEPENDIES[stage].update({arg_type:new_args})
             case _:
               continue
+"""
+# Финальный цикл обновления конфигурации стадий
+STAGE_DEPENDENCIES = {}
+for stage_name, stage_opts in PRE_STAGE_DEPENDIES.items():
+    # Копируем все поля, которые не требуют специальной обработки
+    new_stage = stage_opts.copy()
 
-STAGE_DEPENDENCIES = PRE_STAGE_DEPENDIES.copy()
+    # --- Обработка аргументов для подпотоков (subflow) ---
+    subflow_args = stage_opts.get('prefect_subflow_args')
+    if subflow_args is None:
+        new_stage['prefect_subflow_args'] = DEFAULT_SUBFLOW_ARGS
+    else:
+        # Базовые аргументы из DEFAULT_SUBFLOW_ARGS
+        merged = DEFAULT_SUBFLOW_ARGS.copy()
+        # Обновляем явно указанными значениями из стадии (теги обработаем отдельно)
+        for key, value in subflow_args.items():
+            if key != 'tags':
+                merged[key] = value
+        # Собираем теги из трёх источников: базовые, из конфига стадии, из prefect_tag_limit
+        base_tags = DEFAULT_SUBFLOW_ARGS.get('tags', [])
+        stage_tags = subflow_args.get('tags', [])
+        limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
+        merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
+        new_stage['prefect_subflow_args'] = merged
+
+    # --- Обработка аргументов для задач (task) ---
+    task_args = stage_opts.get('prefect_task_args')
+    if task_args is None:
+        new_stage['prefect_task_args'] = DEFAULT_TASK_ARGS
+    else:
+        merged = DEFAULT_TASK_ARGS.copy()
+        for key, value in task_args.items():
+            if key != 'tags':
+                merged[key] = value
+        base_tags = DEFAULT_TASK_ARGS.get('tags', [])
+        stage_tags = task_args.get('tags', [])
+        limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
+        merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
+        new_stage['prefect_task_args'] = merged
+
+    STAGE_DEPENDENCIES[stage_name] = new_stage
