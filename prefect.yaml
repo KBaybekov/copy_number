@@ -59,6 +59,16 @@ x-deployment-defaults: &deployment-defaults
   job_variables:
     image: "{{ build-image.image }}"
 
+x-deployment-nextflow: &deployment-nextflow
+  version: '{{ build-image.tag }}'
+  schedules: []
+  tags: ['cpu', 'nextflow', 'subflow']
+  work_pool:
+    name: nanopore_docker_pool
+    work_queue_name: cpu_nodes
+  job_variables:
+    image: "{{ build-image-nextflow.image }}"
+
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
   - name: CYP2D6:main_pipeline
@@ -83,7 +93,7 @@ deployments:
       grace_period_seconds: 120 # время, за которое флоу должен развернуться и стартовать
 
   - name: nextflow_pipeline_cpu
-    <<: *deployment-defaults
+    <<: *deployment-nextflow
     description: "Flow for processing Nextflow pipelines on CPU workers"
     flow_name: "[CPU] Nextflow Runner"
     entrypoint: src/flows/nextflow_pipeline_cpu.py:nextflow_pipeline_cpu
@@ -91,9 +101,6 @@ deployments:
       limit: 50
       collision_strategy: ENQUEUE
       grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
-    tags: ['cpu', 'nextflow', 'subflow']
-    job_variables:
-      image: "{{ build-image-nextflow.image }}"
 
 
   - name: test_logsss

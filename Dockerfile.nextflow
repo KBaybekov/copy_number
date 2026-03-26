@@ -1,10 +1,10 @@
 FROM nextflow/nextflow:25.10.4
 
-RUN mkdir -p /opt/prefect/
+#RUN mkdir -p /opt/prefect/
 
-WORKDIR /opt/prefect/
+#WORKDIR /opt/prefect/
 
-#COPY requirements.txt .
+COPY requirements_nextflow.txt .
 
 RUN yum install -y python3-pip \
-    #&& pip install --no-cache-dir -r requirements.txt
+    && pip install --no-cache-dir -r requirements_nextflow.txt
