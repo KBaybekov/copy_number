@@ -81,10 +81,9 @@ async def nextflow_pipeline_cpu(
         try:
             arg_val = configuration_parameters.pop(arg)
         except KeyError:
-            match arg:
-                case 'env':
-                    arg_val = {}
-                case _:
+            if arg == 'env':
+                arg_val = {}
+            else:
                     arg_val = []
         optional_shell_args.update({arg:arg_val})
     
