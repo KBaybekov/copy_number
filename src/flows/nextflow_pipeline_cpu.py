@@ -114,15 +114,15 @@ async def nextflow_pipeline_cpu(
     shell_cmds:List[str] = optional_shell_args['cmds_before'] + nextflow_command + optional_shell_args['cmds_after']
     
     # Запускаем пайплайн
-    shell_op = ShellOperation(
+    async with ShellOperation(
                               commands=shell_cmds,
                               env=optional_shell_args.get('env', {}),
                               working_dir=Path(shell_working_dir),
                               stream_output=True
-                             )
-    # Запускаем процесс
-    process = shell_op.trigger() # type: ignore
-    # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-    process.wait_for_completion() # type: ignore
-    return_code:int = process.return_code # type: ignore
+                             ) as shell_op:
+        # Запускаем процесс
+        process = await shell_op.atrigger()
+        # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
+        await process.await_for_completion()
+        return_code:int = process.return_code # type: ignore
     return interpret_exit_code(return_code)
