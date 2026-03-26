@@ -25,7 +25,15 @@ push:
       tag: '{{ build-image-nextflow.tag }}'
 
 # runtime steps
-
+pull:
+  - prefect.deployments.steps.set_working_directory:
+      directory: /opt/prefect/
+  - prefect.deployments.steps.git_clone:
+      id: clone-step
+      repository: https://github.com/KBaybekov/copy_number.git
+  - prefect.deployments.steps.pip_install_requirements:
+      directory: "{{ clone-step.directory }}" # `clone-step` is a user-provided `id` field
+      requirements_file: requirements_nextflow.txt
 
 x-deployment-nextflow: &deployment-nextflow
   version: '{{ build-image-nextflow.tag }}'
