@@ -256,25 +256,6 @@ def nextflow_pipeline_cpu(
     return_code:int = process.return_code # type: ignore
     return interpret_exit_code(return_code)
 
-def _nextflow_pipeline_cpu(operation_data:dict) -> Tuple[bool, str]:
-    """
-    Запуск пайплайна Nextflow через ShellOperation
-    Returns:
-        Кортеж, где первый элемент — флаг успеха (True/False),
-        а второй — сообщение об ошибке (пустая строка при успехе).
-    """
-    # Формируем команду запуска
-    shell_op = prepare_shell_block(
-                                   block_name='nextflow-v1',
-                                   data=operation_data
-                                  )
-    # Запускаем процесс
-    process = shell_op.trigger() # type: ignore
-    # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-    process.wait_for_completion() # type: ignore
-    return_code:int = process.return_code # type: ignore
-    return interpret_exit_code(return_code)
-
 def submit_to_prefect(
                       prefect_task_params: Dict[str, Any],
                       run_args: Dict[str, Any],

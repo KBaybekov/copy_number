@@ -120,5 +120,5 @@ def alignment(
         diffs = compute_diff(old_sample, sample)
     except Exception as e:
         logger.error(f"Произошло страшное:\n{e}")
+        raise e
     return (diffs, is_processing_ok)
-    
