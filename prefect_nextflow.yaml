@@ -36,7 +36,7 @@ pull:
       requirements_file: requirements_nextflow.txt
 
 x-deployment-nextflow: &deployment-nextflow
-  version: '{{ build-image.tag }}'
+  version: '{{ build-image-nextflow.tag }}'
   schedules: []
   tags: ['cpu', 'nextflow', 'subflow']
   work_pool:
