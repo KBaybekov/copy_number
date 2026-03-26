@@ -123,6 +123,6 @@ async def nextflow_pipeline_cpu(
     # Запускаем процесс
     process = shell_op.trigger() # type: ignore
     # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-    await process.wait_for_completion() # type: ignore
+    process.wait_for_completion() # type: ignore
     return_code:int = process.return_code # type: ignore
     return interpret_exit_code(return_code)
