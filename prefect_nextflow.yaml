@@ -44,6 +44,7 @@ x-deployment-nextflow: &deployment-nextflow
     work_queue_name: cpu_nodes
   job_variables:
     image: "{{ build-image-nextflow.image }}"
+    image_pull_policy: "Always"
 
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
