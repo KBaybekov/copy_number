@@ -28,13 +28,12 @@ def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
         Кортеж, где первый элемент — флаг успеха (True/False), 
         а второй — сообщение об ошибке (пустая строка при успехе).
     """
-    match exit_code:
-        case 0:
-            return (True, '')
-        case 127:
-            return (False, 'Command not found')
-        case _:
-            return (False, f'Processing failed, exitcode: {exit_code}')
+    if exit_code == 0:
+        return (True, '')
+    elif exit_code == 127:
+        return (False, 'Command not found')
+    else:
+        return (False, f'Processing failed, exitcode: {exit_code}')
 
 def render_text(template:str, data:dict) -> str:
     """
