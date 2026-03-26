@@ -66,7 +66,7 @@ def get_logger():
     # 4. Формируем путь к файлу
     now = datetime.now()
     log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
-    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv"
+    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_")
     
     # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
     real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore

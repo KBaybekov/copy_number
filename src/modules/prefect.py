@@ -121,7 +121,6 @@ def prepare_shell_block(
                         logger.error(f"Ошибка при изменении блока {block_name}. Раздел {k}. Данные: {data}")
     return block
                     
-# TODO Внедрить в код
 async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
     """
     Устанавливает/изменяет в Prefect глобальный concurrency лимит по тегу 

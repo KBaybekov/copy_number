@@ -1,3 +1,9 @@
 FROM nextflow/nextflow:25.10.4
 
+RUN mkdir -p /opt/prefect
 
+WORKDIR /opt/prefect
+
+COPY requirements.txt .
+
+RUN pip install --no-cache-dir -r requirements.txt
