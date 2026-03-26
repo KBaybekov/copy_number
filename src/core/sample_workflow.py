@@ -122,9 +122,11 @@ async def sample_workflow(
                     not sample.finished
                    ])
               ]):
+        print("Entering loop")
         start = datetime.now()
         # Проверяем, какие стадии можно запустить
         for stage_name in stages:
+            print("Entering stage loop")
             stage_data = STAGE_DEPENDENCIES.get(stage_name)
             if stage_data is None:
                 logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")
@@ -147,11 +149,15 @@ async def sample_workflow(
                     new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, **stage_args_default)
                     # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
                     if new_stage_factories:
+                        print(f"formed new stage factories: {new_stage_factories}")
                         # Создаём для каждой стадии список, если его ещё не было
                         if stage_name not in sample.task_channels.keys():
                             sample.task_channels[stage_name] = {}
                         for task_name, args in new_stage_factories.items():
-                            if task_name not in sample.task_channels[stage_name]:
+                            if all ([
+                                     task_name not in sample.task_channels[stage_name],
+                                     task_name not in submitted_tasks
+                                    ]):
                                 sample.task_channels[stage_name].update({task_name:args})
                     print(f"sample.task_channels: {sample.task_channels}")
                     # Отправляем задачи на обработку
