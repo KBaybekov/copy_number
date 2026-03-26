@@ -6,5 +6,5 @@ WORKDIR /opt/prefect
 
 COPY requirements.txt .
 
-RUN apk add --no-cache python3-pip \
+RUN yum install -y python3-pip \
     && pip install --no-cache-dir -r requirements.txt
