@@ -93,7 +93,7 @@ deployments:
       grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
     tags: ['cpu', 'nextflow', 'subflow']
     job_variables:
-    image: "{{ build-image-nextflow.image }}"
+      image: "{{ build-image-nextflow.image }}"
 
 
   - name: test_logsss
