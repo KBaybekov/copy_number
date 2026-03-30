@@ -33,7 +33,7 @@ MAX_CALLING = 4
 AVAILABLE_GPU_IDS = [2, 3, 4, 6, 7]
 
 THREADS_PER_ALIGNMENT = 16
-ALIGNMENT_TIMEOUT = 60*60*10
+ALIGNMENT_TIMEOUT = 60*60*24
 
 # Настройки главного флоу пайплайна. Основные изменения проводить в main_flow_options.yaml
 now = datetime.now()
