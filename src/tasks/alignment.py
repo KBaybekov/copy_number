@@ -76,6 +76,9 @@ def alignment(
                         "prefix": f"{sample.id}_",
                         "threads_per_alignment": threads_per_alignment,
                         "sample_work_dir": work_dir,
+                        "report_file": bam_dir / f"{bam_id}_alignment_report_nxf.html",
+                        "trace_file": bam_dir / f"{bam_id}_alignment_trace_nxf.tsv",
+                        "timeline_file": bam_dir / f"{bam_id}_alignment_timeline_nxf.html",
                         # служебные данные для запуска деплоя Nextflow
                         "cfg_file": cfg_file,
                         "cfg_template": cfg_template,
