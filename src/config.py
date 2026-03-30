@@ -8,7 +8,7 @@ from prefect.utilities.annotations import NotSet
 
 from tasks.alignment import alignment, alignment_arg_factory
 
-SAMPLE_CSV = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/CYP2D6_samples.tsv')
+SAMPLE_CSV = Path('/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv')
 
 # Настройки ограничений
   # CPU

@@ -9,7 +9,7 @@ from inspect import stack
 T = TypeVar('T')
 
 
-RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/github/neurology/cyp2d6/result/')
+RES_FOLDER = Path('/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/')
 ONT_FOLDER = Path('/mnt/cephfs8_ro/nanopore/')
 # ~FASTQ*8
 RAW_DATA_THRESHOLD = 528
