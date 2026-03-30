@@ -73,7 +73,7 @@ def alignment(
             cfg_data = {
                         "fq_dir": fq_dir,
                         "bam_out_dir": bam_dir,
-                        "prefix": f"aln_{sample.id}",
+                        "prefix": f"{sample.id}_",
                         "threads_per_alignment": threads_per_alignment,
                         "sample_work_dir": work_dir,
                         "report_file": bam_dir / f"{bam_id}_alignment_report_nxf.html",
