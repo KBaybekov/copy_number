@@ -42,6 +42,7 @@ def render_text(template:str, data:dict) -> str:
     """
     return Template(template).render(**data)
 
+"""
 # Загрузка переменных из Prefect
 prefect_vars = [
                 'nxf_cfg_alignment_v1',
@@ -49,7 +50,7 @@ prefect_vars = [
                 'nxf_cmd_docker'
                ]
 LOADED_PREFECT_VARS = {var:get_prefect_variable(var) for var in prefect_vars}
-
+"""
 @flow
 async def nextflow_pipeline_cpu(
                           pipeline:str,
@@ -97,7 +98,7 @@ async def nextflow_pipeline_cpu(
     # Формируем файл конфигурации
     with open(cfg_file, 'w') as f:
         config = render_text(
-                             template=LOADED_PREFECT_VARS.get(cfg_template, ""),
+                             template=get_prefect_variable(cfg_template),
                              data=configuration_parameters
                             )
         f.write(config)
@@ -111,7 +112,7 @@ async def nextflow_pipeline_cpu(
 
     # Формируем shell-команду
     nextflow_command = [render_text(
-                                   template=LOADED_PREFECT_VARS.get("nxf_cmd_docker", ""),
+                                   template=get_prefect_variable("nxf_cmd_docker"),
                                    data=cmd_data
                                   )]
     # Добавляем подготовительные и постпроцессинговые команды
