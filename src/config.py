@@ -7,6 +7,8 @@ from prefect.task_runners import ThreadPoolTaskRunner
 from prefect.utilities.annotations import NotSet
 
 from tasks.alignment import alignment, alignment_arg_factory
+from tasks.cnv_calling import cnv_calling, cnv_calling_arg_factory
+
 
 SAMPLE_CSV = Path('/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv')
 
@@ -17,6 +19,7 @@ CPUS_PER_WORKER = 256
 CPUS_MAX_LOAD_PERC = 90
 
 CPUS_ALIGNMENT = 14
+CPUS_CNV_CALLING = 14
   # GPU
 GPUS_PER_WORKER = 0
   # RAM
@@ -34,6 +37,9 @@ AVAILABLE_GPU_IDS = [2, 3, 4, 6, 7]
 
 THREADS_PER_ALIGNMENT = 16
 ALIGNMENT_TIMEOUT = 60*60*24
+
+THREADS_PER_CNV_CALLING = 16
+CNV_CALLING_TIMEOUT = 60*60*12
 
 # Настройки главного флоу пайплайна. Основные изменения проводить в main_flow_options.yaml
 now = datetime.now()
@@ -92,67 +98,26 @@ PRE_STAGE_DEPENDIES = {
                                                         },
                                     'handler': alignment,
                                     'arg_factory': alignment_arg_factory
+                                  },
+                      'cnv_calling':{
+                                   'args':{'threads_per_alignment':THREADS_PER_CNV_CALLING},
+                                   'prefect_subflow_args': None,
+                                   'prefect_task_args': {
+                                                         'name':"cnv_calling_nanopore",
+                                                         'description': 'Поиск CNV ONT',
+                                                         'timeout_seconds': CNV_CALLING_TIMEOUT,
+                                                         'tags': ['nanopore', 'cnv_calling', 'cpu', 'nextflow', 'long']                                                        
+                                                        },
+                                    'prefect_tag_limit':{
+                                                         'nanopore_cnv_calling_cpu': {'cpu':CPUS_CNV_CALLING},
+                                                         'nanopore_cnv_calling_gpu': {'gpu':None},
+                                                         'nanopore_cnv_calling_ram': {'ram':None},
+                                                        },
+                                    'handler': cnv_calling,
+                                    'arg_factory': cnv_calling_arg_factory
                                   }
                      }
 
-
-"""for stage, stage_options in STAGE_DEPENDENCIES.items():
-    for arg_type, arg_value in stage_options.items():
-        match arg_type:
-            case 'prefect_subflow_args':
-                match arg_value:
-                  case None | {}:
-                    STAGE_DEPENDENCIES[stage].update({arg_type:full_default_subflow_args})
-                  case dict():
-                      new_args = full_default_subflow_args.copy()
-                      new_args.update(arg_value)
-                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
-            case 'prefect_task_args':
-                match arg_value:
-                  case None | {}:
-                    STAGE_DEPENDENCIES[stage].update({arg_type:full_default_task_args})
-                  case dict():
-                      new_args = full_default_task_args.copy()
-                      new_args.update(arg_value)
-                      STAGE_DEPENDENCIES[stage].update({arg_type:new_args})
-            case _:
-              continue
-  """         
-"""
-for stage, stage_options in PRE_STAGE_DEPENDIES.items():
-    for arg_type in stage_options.keys():
-        match arg_type:
-            case 'prefect_subflow_args':
-                stage_subflow_args = PRE_STAGE_DEPENDIES[stage][arg_type]
-                match stage_subflow_args:
-                  case None | {}:
-                    PRE_STAGE_DEPENDIES[stage].update({arg_type:DEFAULT_SUBFLOW_ARGS})
-                  case dict():
-                      new_args = DEFAULT_SUBFLOW_ARGS.copy()
-                      new_args.update(stage_subflow_args)
-                      if 'tags' not in new_args.keys():
-                         new_args['tags'] = []
-                      new_args['tags'].extend(DEFAULT_SUBFLOW_ARGS.get('tags', []))
-                      new_args['tags'].extend([tag for tag, val in PRE_STAGE_DEPENDIES[stage]['prefect_tag_limit'].items() if val is not None])
-                      PRE_STAGE_DEPENDIES[stage].update({arg_type:new_args})
-                      
-            case 'prefect_task_args':
-                stage_task_args = PRE_STAGE_DEPENDIES[stage][arg_type]
-                match stage_task_args:
-                  case None | {}:
-                    PRE_STAGE_DEPENDIES[stage].update({arg_type:DEFAULT_TASK_ARGS})
-                  case dict():
-                      new_args = DEFAULT_TASK_ARGS.copy()
-                      new_args.update(stage_task_args)
-                      if 'tags' not in new_args.keys():
-                         new_args['tags'] = []
-                      new_args['tags'].extend(stage_task_args.get('tags', []))
-                      new_args['tags'].extend(list(PRE_STAGE_DEPENDIES[stage]['prefect_tag_limit'].keys()))
-                      new_args['tags'] = list(set(new_args['tags']))
-                      PRE_STAGE_DEPENDIES[stage].update({arg_type:new_args})
-            case _:
-              continue
-"""
 # Финальный цикл обновления конфигурации стадий
 STAGE_DEPENDENCIES = {}
 for stage_name, stage_opts in PRE_STAGE_DEPENDIES.items():

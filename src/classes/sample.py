@@ -204,8 +204,8 @@ class Sample:
     merged_bams:Set[Path] = field(default_factory=set)
     bam:Optional[Path] = field(default=Path())
     bam_qc:bool = field(default=False)
-    sv:Optional[Path] = field(default=Path())
-    cnv:Optional[Path] = field(default=Path())
+    sv:Set[Path] = field(default=set())
+    cnv:Set[Path] = field(default=set())
     
 
     @staticmethod
@@ -305,8 +305,8 @@ class Sample:
                         merged_bams=get_set_of_paths(data.get('merged_bams')),
                         bam=get_path_val(data.get('bam')),
                         bam_qc=get_bool_val(data.get('bam_qc')),
-                        sv=get_path_val(data.get('sv')),
-                        cnv=get_path_val(data.get('cnv')),
+                        sv=get_set_of_paths(data.get('sv')),
+                        cnv=get_set_of_paths(data.get('cnv')),
                         errors=split_str_to_dict(data.get('errors')),
                         processed_tasks=get_list_of_strings(data.get('processed_tasks')),
                         task_statuses=split_str_to_dict(data.get('task_statuses')),
