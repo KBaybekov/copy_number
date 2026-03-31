@@ -49,9 +49,5 @@ deployments:
     description: "Flow for processing Nextflow pipelines on CPU workers"
     flow_name: "[CPU] Nextflow Runner"
     entrypoint: src/flows/nextflow_pipeline_cpu.py:nextflow_pipeline_cpu
-    concurrency_limit:
-      limit: 50
-      collision_strategy: ENQUEUE
-      grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
     env:
       NXF_HOME: /mnt/cephfs8_rw/nanopore2/service/nextflow/

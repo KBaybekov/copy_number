@@ -87,21 +87,6 @@ deployments:
     description: "Flow for processing sample"
     flow_name: "CYP2D6_sample_workflow"
     entrypoint: src/core/sample_workflow.py:sample_workflow
-    concurrency_limit:
-      limit: 50
-      collision_strategy: ENQUEUE
-      grace_period_seconds: 120 # время, за которое флоу должен развернуться и стартовать
-
-  - name: nextflow_pipeline_cpu
-    <<: *deployment-nextflow
-    description: "Flow for processing Nextflow pipelines on CPU workers"
-    flow_name: "[CPU] Nextflow Runner"
-    entrypoint: src/flows/nextflow_pipeline_cpu.py:nextflow_pipeline_cpu
-    concurrency_limit:
-      limit: 50
-      collision_strategy: ENQUEUE
-      grace_period_seconds: 300 # время, за которое флоу должен развернуться и стартовать
-
 
   - name: test_logsss
     <<: *deployment-defaults
