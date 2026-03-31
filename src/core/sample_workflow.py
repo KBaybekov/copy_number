@@ -124,9 +124,11 @@ async def sample_workflow(
               ]):
         print("Entering loop")
         start = datetime.now()
+        print(f"stage_statuses: {sample.stage_statuses}")
         # Проверяем, какие стадии можно запустить
+        print("Entering stage loop")
         for stage_name in stages:
-            print("Entering stage loop")
+            print(f"Stage: {stage_name}")
             stage_data = STAGE_DEPENDENCIES.get(stage_name)
             if stage_data is None:
                 logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")

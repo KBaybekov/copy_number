@@ -30,10 +30,10 @@ def cnv_calling_arg_factory(
         return ""
 
     # Проверяем, подходит ли вообще sample для коллинга CNV (ex-STAGE_CONDITIONS)
-    if all([
-            sample.bams,
-            sample.stage_statuses.get('alignment') == "OK"
-           ]):
+    if not all([
+                sample.bams,
+                sample.stage_statuses.get('alignment') == "OK"
+               ]):
         return {}
     # Формируем наборы аргументов
     arg_sets = {}
