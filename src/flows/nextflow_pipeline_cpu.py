@@ -43,7 +43,11 @@ def render_text(template:str, data:dict) -> str:
     return Template(template).render(**data)
 
 # Загрузка переменных из Prefect
-prefect_vars = ['nxf_cfg_alignment_v1', 'nxf_cmd_docker']
+prefect_vars = [
+                'nxf_cfg_alignment_v1',
+                'nxf_cfg_human_cnv_v1',
+                'nxf_cmd_docker'
+               ]
 LOADED_PREFECT_VARS = {var:get_prefect_variable(var) for var in prefect_vars}
 
 @flow
