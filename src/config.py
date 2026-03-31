@@ -100,7 +100,7 @@ PRE_STAGE_DEPENDIES = {
                                     'arg_factory': alignment_arg_factory
                                   },
                       'cnv_calling':{
-                                   'args':{'threads_per_alignment':THREADS_PER_CNV_CALLING},
+                                   'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
                                    'prefect_subflow_args': None,
                                    'prefect_task_args': {
                                                          'name':"cnv_calling_nanopore",
