@@ -204,8 +204,8 @@ class Sample:
     merged_bams:Set[Path] = field(default_factory=set)
     bam:Optional[Path] = field(default=Path())
     bam_qc:bool = field(default=False)
-    sv:Set[Path] = field(default=set())
-    cnv:Set[Path] = field(default=set())
+    sv:Set[Path] = field(default_factory=set)
+    cnv:Set[Path] = field(default_factory=set)
     
 
     @staticmethod
