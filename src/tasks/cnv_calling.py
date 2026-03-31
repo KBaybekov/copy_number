@@ -1,7 +1,6 @@
 from classes.sample import Sample, compute_diff
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
-from shutil import copy
 
 from modules.logger import get_logger
 from prefect import task
@@ -18,12 +17,12 @@ def cnv_calling_arg_factory(
     Добавление в набор аргументов обязательных stage_dirs.
     Ключ к набору аргументов - произвольный и уникальный task_name
     """
-    def define_basecalling_model() -> str:
+    def define_basecalling_model(bam_id:str) -> str:
         """
         Определение модели бейсколлинга по типу исходных данных
         """
         batch_d = next((x for x in sample.basecalled_batches if x.name in bam_id), None)
-        if batch_d:
+        if batch_d is not None:
             is_r10 = any('pod5' in x.name for x in batch_d.iterdir())
             if is_r10:
                 return "dna_r10.4.1_e8.2_400bps_hac@v5.2.0"
@@ -38,9 +37,11 @@ def cnv_calling_arg_factory(
         return {}
     # Формируем наборы аргументов
     arg_sets = {}
+    print(f"basecalled_batches: {sample.basecalled_batches}")
     for bam in sample.bams:
         bam_id = bam.parents[0].name
-        basecalling_model = define_basecalling_model()
+        print(f"bam_id: {bam_id}")
+        basecalling_model = define_basecalling_model(bam_id)
         if all([
                 basecalling_model,
                 not any(bam_id in s.name for s in sample.cnv)
