@@ -230,7 +230,8 @@ async def sample_workflow(
     # Принудительно отменяем все незавершённые асинхронные задачи (кроме текущей)
     import asyncio
     current = asyncio.current_task()
-    for task in asyncio.all_tasks():
+    running_async_tasks = asyncio.all_tasks()
+    for task in running_async_tasks:
         if task is not current:
             task.cancel()
             try:

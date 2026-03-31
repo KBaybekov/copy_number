@@ -39,7 +39,7 @@ def cnv_calling_arg_factory(
     arg_sets = {}
     print(f"basecalled_batches: {sample.basecalled_batches}")
     for bam in sample.bams:
-        bam_id = bam.parents[0].name
+        bam_id = bam.name.removesuffix(''.join(bam.suffixes)).split('-')[-1]
         print(f"bam_id: {bam_id}")
         basecalling_model = define_basecalling_model(bam_id)
         if all([
