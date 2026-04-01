@@ -16,15 +16,6 @@ build:
     dockerfile: auto
     nocache: true
     platform: linux/amd64
-# Билд для деплоймента nextflow_pipeline_cpu
-- prefect_docker.deployments.steps.build_docker_image:
-    id: build-image-nextflow
-    requires: prefect-docker>=0.3.1
-    image_name: kbaybekov/cyp2d6-copy-nextflow
-    tag: "{{ get-commit-hash.stdout }}"
-    dockerfile: Dockerfile.nextflow   # пустой файл, просто FROM
-    nocache: true
-    platform: linux/amd64
 
 push:
 # Пуш для основного пайплайна CYP2D6:main_pipeline
