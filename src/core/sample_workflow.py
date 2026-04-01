@@ -14,7 +14,7 @@ from prefect.artifacts import create_markdown_artifact
 from classes.sample import Sample, apply_changes
 from config import STAGE_DEPENDENCIES
 from modules.logger import get_logger
-from modules.prefect import collect_from_prefect, submit_to_prefect
+from modules.prefect import collect_from_prefect, create_prefect_run_name, get_run_id, submit_to_prefect
 
 # Функция принимает Sample и произвольные именованные аргументы (**kwargs)
 ArgFactory: TypeAlias = Callable[..., Dict[str, Dict[str, Any]]]
@@ -99,6 +99,7 @@ async def sample_workflow(
     if not flow_params:
         logger.error("Контекст потока Prefect недоступен!")
         return sample
+    flow_id = get_run_id()
     
     # Проверяем наличие рабочей и результирующей папок
     if any([sample.res_folder is None, sample.work_folder is None]):
@@ -148,7 +149,7 @@ async def sample_workflow(
                     stage_dirs = [d / stage_name for d in [sample.work_folder, sample.res_folder]] # type: ignore
                     stage_args_default.update({'stage_dirs':stage_dirs})
                     # Формируем список наборов аргументов
-                    new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, **stage_args_default)
+                    new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, flow_id, **stage_args_default)
                     # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
                     if new_stage_factories:
                         print(f"formed new stage factories: {new_stage_factories}")

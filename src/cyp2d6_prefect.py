@@ -75,12 +75,13 @@ async def main_pipeline(
     # Порождение независимых потоков (Subflows) для каждого сэмпла   
     logger.info(f"Инициализация асинхронных потоков для {len(samples)} образцов...")
 
+    flow_id = get_run_id()
     pipeline_name = main_flow_options['name']
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
                                                                              flow_run_name=create_prefect_run_name(type='Subflow',
                                                                                                                    name="Sample_Workflow",
-                                                                                                                   parent_id=get_run_id(),
+                                                                                                                   parent_id=flow_id,
                                                                                                                    sample_id=s.id
                                                                                                                   ),
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"

@@ -5,10 +5,11 @@ from pathlib import Path
 from modules.logger import get_logger
 from prefect import task
 
-from modules.prefect import get_result_from_subflow
+from modules.prefect import create_prefect_run_name, get_result_from_subflow
 
 def cnv_calling_arg_factory(
                           sample: Sample,
+                          parent_flow_id:str,
                           stage_dirs: List[Path],
                           threads_per_cnv_calling: int
                          ) -> Dict[str, Dict[str, Any]]:
@@ -48,7 +49,12 @@ def cnv_calling_arg_factory(
                 basecalling_model,
                 not any(bam_id in s.name for s in sample.cnv)
                ]):
-            task_name = f"CNV Calling [{sample.id}] - [{bam_id}]"
+            task_name = create_prefect_run_name(
+                                                type='Task',
+                                                name=f"CNV Calling: batch {bam_id}",
+                                                parent_id=parent_flow_id,
+                                                sample_id=sample.id
+                                               )
             arg_sets.update({task_name: {
                                         'stage_dirs': stage_dirs,
                                         'threads_per_cnv_calling':threads_per_cnv_calling,

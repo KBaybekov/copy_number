@@ -4,10 +4,11 @@ from pathlib import Path
 from modules.logger import get_logger
 from prefect import task
 
-from modules.prefect import get_result_from_subflow
+from modules.prefect import create_prefect_run_name, get_result_from_subflow
 
 def alignment_arg_factory(
                           sample: Sample,
+                          parent_flow_id:str,
                           stage_dirs: List[Path],
                           threads_per_alignment: int
                          ) -> Dict[str, Dict[str, Any]]:
@@ -30,7 +31,12 @@ def alignment_arg_factory(
         else:
             batch_name = fq_dir.name
         if not any(batch_name in s.name for s in sample.bams):
-            task_name = f"Alignment ([{sample.id}] - [{batch_name}])"
+            task_name = create_prefect_run_name(
+                                                type='Task',
+                                                name=f"Alignment: batch {batch_name}",
+                                                parent_id=parent_flow_id,
+                                                sample_id=sample.id
+                                               )
             arg_sets.update({task_name: {
                                          'stage_dirs': stage_dirs,
                                          'threads_per_alignment':threads_per_alignment,
@@ -91,11 +97,11 @@ async def alignment(
                             }
 
             # Запуск пайплайна Nextflow и получение результата
-            is_processing_ok, fail_desc = get_result_from_subflow(
-                                                                deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
-                                                                run_parameters=run_parameters,
-                                                                subflow_parameters=subflow_params
-                                                                )
+            is_processing_ok, fail_desc = await get_result_from_subflow(
+                                                                        deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
+                                                                        run_parameters=run_parameters,
+                                                                        subflow_parameters=subflow_params
+                                                                       )
             # Проверка результатов
             if is_processing_ok:
                 bam = next((x for x in bam_dir.iterdir() if x.suffix == ".bam"), None)
