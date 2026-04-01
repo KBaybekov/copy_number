@@ -9,9 +9,8 @@ import logging
 from prefect import flow, get_run_logger
 from prefect.client.schemas import FlowRun
 from prefect.context import get_run_context, FlowRunContext, TaskRunContext
-from prefect.flows import Flow
 from prefect.logging.handlers import APILogHandler
-from prefect.artifacts import create_link_artifact
+from prefect.artifacts import acreate_link_artifact
 from datetime import datetime
 from pathlib import Path
 from os import getenv
@@ -54,7 +53,7 @@ class TsvFormatter(logging.Formatter):
         ]
         return "\t".join(parts)
 
-def get_logger():
+async def get_logger():
     logger = get_run_logger()  # адаптер Prefect
     
     # 1. Разрешаем логгеру флоу глотать DEBUG
@@ -84,6 +83,7 @@ def get_logger():
         # 4. Формируем путь к файлу
         now = datetime.now()
         log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
+        log_dir.mkdir(parents=True, exist_ok=True)
         log_filepath = log_dir / f"{ctx_name}_{run_id}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_")
     
         # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
@@ -94,7 +94,6 @@ def get_logger():
                 for h in real_logger.handlers): # type: ignore
             # Создаём файл с заголовком, если его нет
             if not log_filepath.exists():
-                log_dir.mkdir(parents=True, exist_ok=True)
                 log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
             
             # Добавляем файловый обработчик с уровнем DEBUG и TSV-форматированием
@@ -117,7 +116,7 @@ def get_logger():
         print(logger.logger.handlers)"""
             
         safe_key = sanitize_artifact_key(raw_key=f"{ctx_name}-logs")
-        create_link_artifact(
+        await acreate_link_artifact(
                             key=safe_key,  # общий ключ для всех запусков флоу
                             # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
                             # (в Apache2 прописан алиас к LOG_FOLDER) 
@@ -130,14 +129,14 @@ def get_logger():
                                             - Полный путь: {log_filepath.resolve().as_posix()}
                                             Файл содержит полные логи уровня DEBUG и выше.
                                         """
-                            )
+                            ) 
         return logger
     else:
         raise ValueError("Данные контекста Prefect для логгера не получены!")
 
 @flow(name="test-log")
-def some_flow():
-    logger = get_logger()
+async def some_flow():
+    logger = await get_logger()
     logger.debug("Тестовое сообщение debug")
     logger.info("Тестовое сообщение info")
     logger.warning("Тестовое сообщение warning")

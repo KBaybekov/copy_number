@@ -329,7 +329,7 @@ class Sample:
                         group=data['group'],
                         subgroup=data['subgroup']
                        )
-        sample.gather_ont_metadata()
+        #sample.gather_ont_metadata()
         return sample
     
     def to_dict(self) -> Dict[str, Any]:
@@ -363,7 +363,7 @@ class Sample:
         
     def copy(self) -> Sample:
         return replace(self)
-
+    """
     def gather_ont_metadata(
                             self
                            ) -> None:
@@ -449,25 +449,25 @@ class Sample:
                              sample_ok=True
                             )
         return None
-        
-    def fail(
+    """      
+    async def fail(
              self,
              stage_name:str = "Unmarked_stage",
              reason:str = ""
             ) -> None:
         self.success = False
         self.finished = True
-        self.log_sample_data(stage_name, False, critical_error=True, fail_reason=reason)
+        await self.log_sample_data(stage_name, False, critical_error=True, fail_reason=reason)
         return None
 
-    def log_sample_data(
+    async def log_sample_data(
                         self,
                         stage_name:str,
                         sample_ok:bool,
                         critical_error:bool=False,
                         fail_reason:str = ""
                        ) -> None:
-        logger = get_logger()
+        logger = await get_logger()
 
         # Получаем стек вызовов
         func_stack = stack()
@@ -511,5 +511,5 @@ class Sample:
         logger.log(msg=msg, level=log_severity)
 
         logger.debug(f"DATA_WRITING: sample {self.id}")
-        write_sample_data(self.to_dict())
+        await write_sample_data(self.to_dict())
         return None

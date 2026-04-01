@@ -6,6 +6,8 @@ from yaml import safe_load
 from prefect.task_runners import ThreadPoolTaskRunner
 from prefect.utilities.annotations import NotSet
 
+from modules.prefect import create_prefect_run_name
+
 from tasks.alignment import alignment, alignment_arg_factory
 from tasks.cnv_calling import cnv_calling, cnv_calling_arg_factory
 
@@ -48,7 +50,11 @@ with open((Path(__file__).resolve().parents[1] / 'main_flow_options.yaml'), 'r')
     main_flow_options: Dict[str, Any] = safe_load(file)
 # Additional options for customizing main flow
 main_flow_options.update({
-                          "flow_run_name": f"{main_flow_options['name']}_{formatted_now}",
+                          "flow_run_name": create_prefect_run_name(
+                                                                   type="Pipeline",
+                                                                   name=main_flow_options['name'],
+                                                                   timestamp=formatted_now
+                                                                  ),
                           "task_runner": ThreadPoolTaskRunner()
                          })
 

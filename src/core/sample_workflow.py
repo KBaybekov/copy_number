@@ -45,7 +45,7 @@ async def sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
-    logger = get_logger()
+    logger = await get_logger()
 
     async def gather_task_statistics(
                                submitted_tasks: Dict[str, PrefectFuture],
@@ -216,11 +216,11 @@ async def sample_workflow(
 
     # Финализация
     sample.finished = True
-    sample.log_sample_data(
-        stage_name="Main_flow",
-        sample_ok=sample.success,
-        fail_reason="End of processing"
-    )
+    await sample.log_sample_data(
+                                 stage_name="Main_flow",
+                                 sample_ok=sample.success,
+                                 fail_reason="End of processing"
+                                )
 
     if sample.success:
         logger.info(f"Образец {sample.id} успешно обработан.")

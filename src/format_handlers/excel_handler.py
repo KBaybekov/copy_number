@@ -5,8 +5,8 @@ from modules.logger import get_logger
 from classes.sample import Sample
 
 
-def process_input_data(sample_data:Tuple[Path, Optional[Path]]) -> List[Sample]:
-    logger = get_logger()
+async def process_input_data(sample_data:Tuple[Path, Optional[Path]]) -> List[Sample]:
+    logger = await get_logger()
     samples = []
     sample_xlsx, sample_csv = sample_data
     if sample_csv:

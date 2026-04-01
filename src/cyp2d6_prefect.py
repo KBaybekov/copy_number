@@ -14,7 +14,7 @@ from config import main_flow_options, STAGE_DEPENDENCIES
 from core.sample_workflow import sample_workflow
 from format_handlers.excel_handler import process_input_data
 from modules.logger import get_logger
-from modules.prefect import set_tag_gcl
+from modules.prefect import create_prefect_run_name, get_run_id, set_tag_gcl
 from classes.sample import Sample
 
 
@@ -29,7 +29,7 @@ async def main_pipeline(
     :param table_input: Путь к исходной таблице Excel с метаданными.
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
-    logger = get_logger()
+    logger = await get_logger()
 
     # Устанавливаем tag-based лимиты одновременной обработки
     tag_limits:Dict[str, Dict[str, int|None]]
@@ -53,7 +53,7 @@ async def main_pipeline(
         status_str = f"- **Таблица с данными обработки образцов:** `{sample_data_path.name}`"
     
     # Инициализация списка объектов Sample
-    samples: List[Sample] = process_input_data((input_path, sample_data_path))
+    samples: List[Sample] = await process_input_data((input_path, sample_data_path))
     
     if not samples:
         logger.warning("Список образцов пуст. Завершение работы.")
@@ -78,7 +78,11 @@ async def main_pipeline(
     pipeline_name = main_flow_options['name']
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
-                                                                             flow_run_name=f"[Sample Workflow] {pipeline_name} [{s.id}]",
+                                                                             flow_run_name=create_prefect_run_name(type='Subflow',
+                                                                                                                   name="Sample_Workflow",
+                                                                                                                   parent_id=get_run_id(),
+                                                                                                                   sample_id=s.id
+                                                                                                                  ),
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
                                                                             )(s) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await asyncio.gather(*tasks, return_exceptions=True)

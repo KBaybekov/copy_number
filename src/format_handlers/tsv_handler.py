@@ -10,8 +10,8 @@ from threading import Lock
 CSV_WRITE_LOCK = Lock()
 
 
-def write_sample_data(sample_data:dict) -> None:
-    logger = get_logger()
+async def write_sample_data(sample_data:dict) -> None:
+    logger = await get_logger()
 
     from config import SAMPLE_CSV
     sample_csv = SAMPLE_CSV
@@ -73,7 +73,7 @@ def write_sample_data(sample_data:dict) -> None:
     else: 
         logger.error(f"Unknown id for data: {sample_data}")
     return None
-
+'''
 def form_nxf_tsv(data_dict: dict|List[dict], filepath: Path) -> Optional[Path]:
     """
     Создает TSV файл из словаря. 
@@ -112,3 +112,4 @@ def form_nxf_tsv(data_dict: dict|List[dict], filepath: Path) -> Optional[Path]:
     else:
         logger.error(f"Файл не создан: {filepath}")
         return None
+'''

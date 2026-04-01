@@ -40,7 +40,7 @@ def alignment_arg_factory(
     return arg_sets
 
 @task
-def alignment(
+async def alignment(
               sample: Sample,
               stage_dirs: List[Path],
               threads_per_alignment: int,
@@ -48,7 +48,7 @@ def alignment(
               batch_name: str,
               **subflow_params
              ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    logger = get_logger()
+    logger = await get_logger()
     is_processing_ok = False
     diffs = {}
 
@@ -103,15 +103,15 @@ def alignment(
                     # SUCCESS
                     sample.bams.add(bam)
                     logger.info(f"Sample {sample.id}: Alignment batch {batch_name}: success")
-                    sample.log_sample_data(stage_name=stage_name, sample_ok=True)
+                    await sample.log_sample_data(stage_name=stage_name, sample_ok=True)
                 else:
                     reason = f"Batch {bam_dir.name}: Alignment {bam_dir.name}: finished successfully, but no BAM found."
-                    sample.fail(
+                    await sample.fail(
                                 stage_name=stage_name,
                                 reason=reason
                             )
             else:
-                sample.log_sample_data(
+                await sample.log_sample_data(
                                     stage_name=stage_name,
                                     sample_ok=True,
                                     critical_error=False,

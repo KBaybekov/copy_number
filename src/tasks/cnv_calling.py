@@ -59,7 +59,7 @@ def cnv_calling_arg_factory(
     return arg_sets
 
 @task
-def cnv_calling(
+async def cnv_calling(
                 sample: Sample,
                 stage_dirs: List[Path],
                 threads_per_cnv_calling: int,
@@ -68,7 +68,7 @@ def cnv_calling(
                 basecalling_model: str,
                 **subflow_params
                ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    logger = get_logger()
+    logger = await get_logger()
     is_processing_ok = False
     diffs = {}
 
@@ -124,15 +124,15 @@ def cnv_calling(
                     # SUCCESS
                     sample.cnv.add(cnv_vcf)
                     logger.info(f"Sample {sample.id}: CNV calling of {bam_id}: success")
-                    sample.log_sample_data(stage_name=stage_name, sample_ok=True)
+                    await sample.log_sample_data(stage_name=stage_name, sample_ok=True)
                 else:
                     reason = f"CNV calling for {bam_id}: finished successfully, but no BAM found."
-                    sample.fail(
+                    await sample.fail(
                                 stage_name=stage_name,
                                 reason=reason
                             )
             else:
-                sample.log_sample_data(
+                await sample.log_sample_data(
                                     stage_name=stage_name,
                                     sample_ok=True,
                                     critical_error=False,

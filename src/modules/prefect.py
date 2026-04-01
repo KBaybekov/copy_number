@@ -1,10 +1,12 @@
 from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result, retry_if_exception_type
 from httpx import RequestError
-from typing import Any, Coroutine, Dict, Tuple
+from typing import Any, Coroutine, Dict, Optional, Tuple
 from uuid import UUID
 
 from prefect import get_client
+from prefect.client.schemas import FlowRun
+from prefect.context import get_run_context, FlowRunContext, TaskRunContext
 from prefect.deployments import run_deployment
 from prefect.exceptions import ObjectAlreadyExists, ObjectNotFound
 from prefect.futures import as_completed, PrefectFuture
@@ -49,7 +51,7 @@ def prepare_variable(variable_name: str, data: Dict[str, str] ) -> str | None:
 def get_prefect_shell_block(block_name: str) -> ShellOperation | Coroutine[Any, Any, ShellOperation] | None:
     return ShellOperation.load(block_name)
 
-def prepare_shell_block(
+async def prepare_shell_block(
                         block_name: str,
                         data: dict | None = None
                        ) -> ShellOperation | Coroutine[Any, Any, ShellOperation] | None:
@@ -58,7 +60,7 @@ def prepare_shell_block(
     В случае, если в передаваемых данных есть словарь, его ключи и значения должны быть строками.
     Разделы: env[dict], shell[str], commands[dict], extension[str], working_dir[Path], stream_output[bool].
     """
-    logger = get_logger()
+    logger = await get_logger()
     block = get_prefect_shell_block(block_name)
     if isinstance(block, ShellOperation):
         if data is not None:
@@ -129,7 +131,7 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
                 Если None, лимит удаляется.
     """
     from config import CPUS_PER_WORKER, CPUS_MAX_LOAD_PERC, GPUS_PER_WORKER, RAM_PER_WORKER, RAM_MAX_LOAD_PERC
-    logger = get_logger()
+    logger = await get_logger()
     
     @RETRY_TAG_ACTIONS
     async def create_or_update():
@@ -248,4 +250,43 @@ def get_result_from_subflow(
     raise_state_exception(subflow.state) # type: ignore
     result = subflow.state.result(raise_on_failure=True) # type: ignore
     return result
+
+def get_run_id() -> str:
+    run_id = "unknown"
+    try:
+        ctx = get_run_context()
+        match ctx:
+            case FlowRunContext():
+                match ctx.flow_run:
+                    case FlowRun():
+                        run_id = ctx.flow_run.id.__str__()
+                    case None:
+                        print("FlowRunContext есть, но flow_run = None")
+            case TaskRunContext():
+                run_id = ctx.task_run.id.__str__()
+    except RuntimeError:
+        print("Вне контекста Prefect!")
+    return run_id
+
+def create_prefect_run_name(
+                            type:str,
+                            name:str,
+                            parent_id:Optional[str]=None,
+                            sample_id: Optional[str]=None,
+                            timestamp: Optional[str]=None
+                           ) -> str:
+    """
+    Создаёт строку имени запуска Prefect вида "[Pipeline]:{name}_{timestamp}"/[Subflow|Task]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_flow_id}
+    Args:
+        type: Pipeline|Subflow|Task
+        name: Произвольное имя
+        parent_id: UUID родительского объекта в виде строки
+        sample_id: id образца
+        timestamp: строковая временная отметка
+    """
+    match type:
+        case 'Pipeline':
+            return f"[Pipeline]:{name}_{timestamp}"
+        case _:
+            return f"[{type}]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
     
