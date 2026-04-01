@@ -65,7 +65,7 @@ def cnv_calling_arg_factory(
     return arg_sets
 
 @task
-async def cnv_calling(
+def cnv_calling(
                 sample: Sample,
                 stage_dirs: List[Path],
                 threads_per_cnv_calling: int,
@@ -74,7 +74,8 @@ async def cnv_calling(
                 basecalling_model: str,
                 **subflow_params
                ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    logger = await get_logger()
+    from asyncio import run as arun
+    logger = arun(get_logger())
     is_processing_ok = False
     diffs = {}
 
@@ -118,11 +119,11 @@ async def cnv_calling(
                             }
 
             # Запуск пайплайна Nextflow и получение результата
-            is_processing_ok, fail_desc = await get_result_from_subflow(
+            is_processing_ok, fail_desc = arun(get_result_from_subflow(
                                                                         deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                         run_parameters=run_parameters,
                                                                         subflow_parameters=subflow_params
-                                                                       )
+                                                                       ))
             # Проверка результатов
             if is_processing_ok:
                 cnv_vcf = next((x for x in res_dir.iterdir() if x.name.endswith('.wf_cnv.vcf.gz')), None)
@@ -130,20 +131,20 @@ async def cnv_calling(
                     # SUCCESS
                     sample.cnv.add(cnv_vcf)
                     logger.info(f"Sample {sample.id}: CNV calling of {bam_id}: success")
-                    await sample.log_sample_data(stage_name=stage_name, sample_ok=True)
+                    arun(sample.log_sample_data(stage_name=stage_name, sample_ok=True))
                 else:
                     reason = f"CNV calling for {bam_id}: finished successfully, but no BAM found."
-                    await sample.fail(
+                    arun(sample.fail(
                                 stage_name=stage_name,
                                 reason=reason
-                            )
+                            ))
             else:
-                await sample.log_sample_data(
+                arun(sample.log_sample_data(
                                     stage_name=stage_name,
                                     sample_ok=True,
                                     critical_error=False,
                                     fail_reason=fail_desc
-                                    )        
+                                    ))
         else:
             sample.fail(stage_name=stage_name, reason="not any bams found")
         # Формирование словаря изменений образца

@@ -46,7 +46,7 @@ def alignment_arg_factory(
     return arg_sets
 
 @task
-async def alignment(
+def alignment(
               sample: Sample,
               stage_dirs: List[Path],
               threads_per_alignment: int,
@@ -54,7 +54,8 @@ async def alignment(
               batch_name: str,
               **subflow_params
              ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
-    logger = await get_logger()
+    from asyncio import run as arun
+    logger = arun(get_logger())
     is_processing_ok = False
     diffs = {}
 
@@ -97,7 +98,7 @@ async def alignment(
                             }
 
             # Запуск пайплайна Nextflow и получение результата
-            is_processing_ok, fail_desc = await get_result_from_subflow(
+            is_processing_ok, fail_desc = get_result_from_subflow(
                                                                         deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                         run_parameters=run_parameters,
                                                                         subflow_parameters=subflow_params
@@ -109,20 +110,20 @@ async def alignment(
                     # SUCCESS
                     sample.bams.add(bam)
                     logger.info(f"Sample {sample.id}: Alignment batch {batch_name}: success")
-                    await sample.log_sample_data(stage_name=stage_name, sample_ok=True)
+                    arun(sample.log_sample_data(stage_name=stage_name, sample_ok=True))
                 else:
                     reason = f"Batch {bam_dir.name}: Alignment {bam_dir.name}: finished successfully, but no BAM found."
-                    await sample.fail(
+                    arun(sample.fail(
                                 stage_name=stage_name,
                                 reason=reason
-                            )
+                            ))
             else:
-                await sample.log_sample_data(
+                arun(sample.log_sample_data(
                                     stage_name=stage_name,
                                     sample_ok=True,
                                     critical_error=False,
                                     fail_reason=fail_desc
-                                    )        
+                                    )    )    
         else:
             sample.fail(stage_name='alignment_common', reason="not found appropriate fq_dir for alignment, but it has to be")
         # Формирование словаря изменений образца
