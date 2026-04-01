@@ -7,7 +7,7 @@ from uuid import UUID
 from prefect import get_client
 from prefect.client.schemas import FlowRun
 from prefect.context import get_run_context, FlowRunContext, TaskRunContext
-from prefect.deployments import run_deployment
+from prefect.deployments import arun_deployment
 from prefect.exceptions import ObjectAlreadyExists, ObjectNotFound
 from prefect.futures import as_completed, PrefectFuture
 from prefect_shell import ShellOperation
@@ -226,7 +226,7 @@ def collect_from_prefect(
         pass
     return results
 
-def get_result_from_subflow(
+async def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -241,14 +241,15 @@ def get_result_from_subflow(
         Результаты выполнения сабфлоу
     """
     # Сериализуем передаваемые в другой флоу данные
-    
-    subflow = run_deployment(
+    result = "Didn't get any result!!!"
+    subflow = await arun_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
                             )
-    raise_state_exception(subflow.state) # type: ignore
-    result = subflow.state.result(raise_on_failure=True) # type: ignore
+    if subflow.state is not None:
+        raise_state_exception(subflow.state) 
+        result = subflow.state.result(raise_on_failure=True) # type: ignore
     return result
 
 def get_run_id() -> str:
