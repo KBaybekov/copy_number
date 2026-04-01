@@ -119,11 +119,11 @@ def cnv_calling(
                             }
 
             # Запуск пайплайна Nextflow и получение результата
-            is_processing_ok, fail_desc = arun(get_result_from_subflow(
+            is_processing_ok, fail_desc = get_result_from_subflow(
                                                                         deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                         run_parameters=run_parameters,
                                                                         subflow_parameters=subflow_params
-                                                                       ))
+                                                                       )
             # Проверка результатов
             if is_processing_ok:
                 cnv_vcf = next((x for x in res_dir.iterdir() if x.name.endswith('.wf_cnv.vcf.gz')), None)
