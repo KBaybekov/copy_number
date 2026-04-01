@@ -84,7 +84,7 @@ async def get_logger():
         now = datetime.now()
         log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
         log_dir.mkdir(parents=True, exist_ok=True)
-        log_filepath = log_dir / f"{ctx_name}_{run_id}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_")
+        log_filepath = log_dir / f"{ctx_name}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_").replace('[', '').replace(']', '')
     
         # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
         real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
