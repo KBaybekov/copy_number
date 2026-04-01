@@ -3,7 +3,7 @@ from pathlib import Path
 from typing import Any, Dict
 from yaml import safe_load
 
-from prefect.task_runners import ThreadPoolTaskRunner
+#from prefect.task_runners import ThreadPoolTaskRunner
 from prefect.utilities.annotations import NotSet
 
 from modules.prefect import create_prefect_run_name
@@ -55,7 +55,7 @@ main_flow_options.update({
                                                                    name=main_flow_options['name'],
                                                                    timestamp=formatted_now
                                                                   ),
-                          "task_runner": ThreadPoolTaskRunner()
+                          #"task_runner": ThreadPoolTaskRunner()
                          })
 
 # Аргументы по умолчанию для флоу/тасок заданий
