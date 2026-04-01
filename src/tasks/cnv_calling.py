@@ -74,8 +74,10 @@ def cnv_calling(
                 basecalling_model: str,
                 **subflow_params
                ) -> Tuple[Dict[str, Dict[str, Any]], bool]:
+    print("Initializing CNV Calling")
     from asyncio import run as arun
     logger = arun(get_logger())
+    print("Logger Initialized")
     is_processing_ok = False
     diffs = {}
 
@@ -118,6 +120,7 @@ def cnv_calling(
                             "configuration_parameters":cfg_data
                             }
 
+            print("Starting Nexflow subflow...")
             # Запуск пайплайна Nextflow и получение результата
             is_processing_ok, fail_desc = get_result_from_subflow(
                                                                         deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",

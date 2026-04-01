@@ -240,6 +240,7 @@ def get_result_from_subflow(
     Returns:
         Результаты выполнения сабфлоу
     """
+    print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
     result = "Didn't get any result!!!"
     subflow = run_deployment(
@@ -247,11 +248,14 @@ def get_result_from_subflow(
                              parameters=run_parameters,
                              **subflow_parameters
                             )
+    print("run_deployment() happened! Waiting for result...")
     match subflow:
         case FlowRun():
             match subflow.state:
                 case State():
+                    print("Checking for exceptions...")
                     raise_state_exception(subflow.state)
+                    print("Getting result of subflow!")
                     result = subflow.state.result(raise_on_failure=True) # type: ignore
     return result
 

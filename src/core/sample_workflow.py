@@ -108,7 +108,7 @@ async def sample_workflow(
 
     logger.info(f"Запуск обработки образца {sample.id} через Prefect")
 
-    print(f"STAGE_DEPENDENCIES:\n{STAGE_DEPENDENCIES}")
+    #print(f"STAGE_DEPENDENCIES:\n{STAGE_DEPENDENCIES}")
     # Список стадий, которые ещё не начаты
     stages = list(STAGE_DEPENDENCIES.keys())
     submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
@@ -125,9 +125,9 @@ async def sample_workflow(
               ]):
         print("Entering loop")
         start = datetime.now()
-        print(f"stage_statuses: {sample.stage_statuses}")
+        #print(f"stage_statuses: {sample.stage_statuses}")
         # Проверяем, какие стадии можно запустить
-        print("Entering stage loop")
+        #print("Entering stage loop")
         for stage_name in stages:
             print(f"Stage: {stage_name}")
             stage_data = STAGE_DEPENDENCIES.get(stage_name)
@@ -152,7 +152,7 @@ async def sample_workflow(
                     new_stage_factories:Dict[str, Dict[str, Any]] = arg_factory(sample, flow_id, **stage_args_default)
                     # Добавляем сформированные фабрики аргументов в каналы, исключая дублирование
                     if new_stage_factories:
-                        print(f"formed new stage factories: {new_stage_factories}")
+                        #print(f"formed new stage factories: {new_stage_factories}")
                         # Создаём для каждой стадии список, если его ещё не было
                         if stage_name not in sample.task_channels.keys():
                             sample.task_channels[stage_name] = {}
@@ -162,7 +162,7 @@ async def sample_workflow(
                                      task_name not in submitted_tasks
                                     ]):
                                 sample.task_channels[stage_name].update({task_name:args})
-                    print(f"sample.task_channels: {sample.task_channels}")
+                    #print(f"sample.task_channels: {sample.task_channels}")
                     # Отправляем задачи на обработку
                     if stage_name in sample.task_channels:
                         stage_tasks = sample.task_channels[stage_name].copy()
