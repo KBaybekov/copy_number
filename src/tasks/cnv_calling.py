@@ -2,9 +2,9 @@ from classes.sample import Sample, compute_diff
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
 
-from modules.logger import get_logger
 from prefect import task
 
+from modules.logger import get_logger
 from modules.prefect import create_prefect_run_name, get_result_from_subflow
 
 def cnv_calling_arg_factory(
@@ -95,7 +95,7 @@ async def cnv_calling(
             for d in [work_dir, res_dir]:
                 d.mkdir(mode=755, exist_ok=True, parents=True)
             # Копируем BAM-файлы в all_bams
-            cfg_file = work_dir / f"cnv_calling.config"
+            cfg_file = work_dir / "cnv_calling.config"
             cfg_data = {
                         "bam": bam,
                         "cnv_out_dir": res_dir,
