@@ -23,11 +23,6 @@ push:
     requires: prefect-docker>=0.3.1
     image_name: '{{ build-image.image_name }}'
     tag: '{{ build-image.tag }}'
-# Пуш для деплоймента nextflow_pipeline_cpu
-- prefect_docker.deployments.steps.push_docker_image:
-      requires: prefect-docker>=0.3.1
-      image_name: '{{ build-image-nextflow.image_name }}'
-      tag: '{{ build-image-nextflow.tag }}'
 
 # runtime steps
 pull:
@@ -50,15 +45,6 @@ x-deployment-defaults: &deployment-defaults
   job_variables:
     image: "{{ build-image.image }}"
 
-x-deployment-nextflow: &deployment-nextflow
-  version: '{{ build-image.tag }}'
-  schedules: []
-  tags: ['cpu', 'nextflow', 'subflow']
-  work_pool:
-    name: nanopore_docker_pool
-    work_queue_name: cpu_nodes
-  job_variables:
-    image: "{{ build-image-nextflow.image }}"
 
 # 2. Описываем деплои, ссылаясь на конкретный ID сборки (Этаж 1)
 deployments:
