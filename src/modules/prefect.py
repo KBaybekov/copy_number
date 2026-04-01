@@ -226,7 +226,7 @@ def collect_from_prefect(
         pass
     return results
 
-async def get_result_from_subflow(
+def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -247,7 +247,6 @@ async def get_result_from_subflow(
                              parameters=run_parameters,
                              **subflow_parameters
                             )
-    await subflow  # type: ignore
     raise_state_exception(subflow.state) # type: ignore
     result = subflow.state.result(raise_on_failure=True) # type: ignore
     return result
