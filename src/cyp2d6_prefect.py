@@ -29,8 +29,6 @@ async def main_pipeline(
     :param table_input: Путь к исходной таблице Excel с метаданными.
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
-    
-    # Создаём логгер на основе
     logger = get_logger()
 
     # Устанавливаем tag-based лимиты одновременной обработки
@@ -89,3 +87,4 @@ async def main_pipeline(
     success_count = sum(1 for r in results if isinstance(r, Sample) and r.success)
     error_count = len(results) - success_count
     logger.info(f"Из {len(results)} образцов {success_count} успешны, {error_count} - нет")
+    return None

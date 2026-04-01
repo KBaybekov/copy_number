@@ -7,7 +7,9 @@
 """
 import logging
 from prefect import flow, get_run_logger
-from prefect.context import FlowRunContext
+from prefect.client.schemas import FlowRun
+from prefect.context import get_run_context, FlowRunContext, TaskRunContext
+from prefect.flows import Flow
 from prefect.logging.handlers import APILogHandler
 from prefect.artifacts import create_link_artifact
 from datetime import datetime
@@ -59,62 +61,79 @@ def get_logger():
     logger.setLevel(logging.DEBUG)
     
     # 3. Проверяем, что мы внутри флоу
-    ctx = FlowRunContext.get()
-    if not ctx or not ctx.flow or not ctx.flow_run:
-        return logger  # вне контекста флоу – ничего не делаем
+    ctx_name = ""
+    run_id = ""
+    try:
+        ctx = get_run_context()
+    except RuntimeError:
+        print("Логгер вызван вне контекста объекта Prefect!")
+        raise
+    match ctx:
+        case FlowRunContext():
+            match ctx.flow_run:
+                case FlowRun():
+                    run_id = ctx.flow_run.id
+                    ctx_name =  ctx.flow_run.name
+                case None:
+                    print("FlowRunContext есть, но flow_run = None")
+        case TaskRunContext():
+            run_id = ctx.task_run.id
+            ctx_name =  ctx.task_run.name
+
+    if all([ctx_name, run_id]):
+        # 4. Формируем путь к файлу
+        now = datetime.now()
+        log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
+        log_filepath = log_dir / f"{ctx_name}_{run_id}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_")
     
-    # 4. Формируем путь к файлу
-    now = datetime.now()
-    log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
-    log_filepath = log_dir / f"{ctx.flow.name}_{ctx.flow_run.id}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_")
-    
-    # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
-    real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
+        # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
+        real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
 
-    # 6. Защита от дублирования файлового обработчика
-    if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
-               for h in real_logger.handlers): # type: ignore
-        # Создаём файл с заголовком, если его нет
-        if not log_filepath.exists():
-            log_dir.mkdir(parents=True, exist_ok=True)
-            log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
-        
-        # Добавляем файловый обработчик с уровнем DEBUG и TSV-форматированием
-        handler = logging.FileHandler(log_filepath, encoding='utf-8')
-        handler.setLevel(logging.DEBUG)
-        handler.setFormatter(TsvFormatter(flow_run_id=str(ctx.flow_run.id)))
-        logger.logger.addHandler(handler) # type: ignore
+        # 6. Защита от дублирования файлового обработчика
+        if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
+                for h in real_logger.handlers): # type: ignore
+            # Создаём файл с заголовком, если его нет
+            if not log_filepath.exists():
+                log_dir.mkdir(parents=True, exist_ok=True)
+                log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
+            
+            # Добавляем файловый обработчик с уровнем DEBUG и TSV-форматированием
+            handler = logging.FileHandler(log_filepath, encoding='utf-8')
+            handler.setLevel(logging.DEBUG)
+            handler.setFormatter(TsvFormatter(flow_run_id=str(run_id)))
+            logger.logger.addHandler(handler) # type: ignore
 
-        """
-        console_handler = PrefectConsoleHandler(level=logging.INFO)
-        logger.logger.addHandler(console_handler)
-        """
+            """
+            console_handler = PrefectConsoleHandler(level=logging.INFO)
+            logger.logger.addHandler(console_handler)
+            """
 
-    for handler in logger.logger.handlers: # type: ignore
-        if isinstance(handler, APILogHandler):
-            handler.setLevel(logging.INFO)
-        """
-        if isinstance(handler, PrefectConsoleHandler):
-            handler.setLevel(logging.INFO)
-    print(logger.logger.handlers)"""
-        
-    safe_key = sanitize_artifact_key(raw_key=f"{ctx.flow.name}-logs")
-    create_link_artifact(
-                         key=safe_key,  # общий ключ для всех запусков флоу
-                         # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
-                         # (в Apache2 прописан алиас к LOG_FOLDER) 
-                         link=f"{SERVER_IP}/{log_filepath.resolve().as_posix().replace(LOG_FOLDER.as_posix(), 'logs')}", 
-                         link_text="📄 Открыть лог-файл",
-                         description=f"""# Логи запуска {ctx.flow_run.name}
-                                         - ID запуска: `{ctx.flow_run.id}`
-                                         - Дата: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
-                                         - Формат: TSV
-                                         - Полный путь: {log_filepath.resolve().as_posix()}
-                                         Файл содержит полные логи уровня DEBUG и выше.
-                                      """
-                        )
-
-    return logger
+        for handler in logger.logger.handlers: # type: ignore
+            if isinstance(handler, APILogHandler):
+                handler.setLevel(logging.INFO)
+            """
+            if isinstance(handler, PrefectConsoleHandler):
+                handler.setLevel(logging.INFO)
+        print(logger.logger.handlers)"""
+            
+        safe_key = sanitize_artifact_key(raw_key=f"{ctx_name}-logs")
+        create_link_artifact(
+                            key=safe_key,  # общий ключ для всех запусков флоу
+                            # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
+                            # (в Apache2 прописан алиас к LOG_FOLDER) 
+                            link=f"{SERVER_IP}/{log_filepath.resolve().as_posix().replace(LOG_FOLDER.as_posix(), 'logs')}", 
+                            link_text="📄 Открыть лог-файл",
+                            description=f"""# Логи запуска {ctx_name}
+                                            - ID запуска: `{run_id}`
+                                            - Дата: {datetime.now().strftime("%d.%m.%Y %H:%M:%S")}
+                                            - Формат: TSV
+                                            - Полный путь: {log_filepath.resolve().as_posix()}
+                                            Файл содержит полные логи уровня DEBUG и выше.
+                                        """
+                            )
+        return logger
+    else:
+        raise ValueError("Данные контекста Prefect для логгера не получены!")
 
 @flow(name="test-log")
 def some_flow():

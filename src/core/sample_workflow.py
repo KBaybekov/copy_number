@@ -226,7 +226,7 @@ async def sample_workflow(
         logger.info(f"Образец {sample.id} успешно обработан.")
     else:
         logger.warning(f"Образец {sample.id} завершился с ошибкой.")
-
+    """
     # Принудительно отменяем все незавершённые асинхронные задачи (кроме текущей)
     import asyncio
     current = asyncio.current_task()
@@ -238,5 +238,5 @@ async def sample_workflow(
                 await task
             except asyncio.CancelledError:
                 pass
-
+    """
     return sample

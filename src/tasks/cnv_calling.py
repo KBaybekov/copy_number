@@ -21,7 +21,7 @@ def cnv_calling_arg_factory(
         """
         Определение модели бейсколлинга по типу исходных данных
         """
-        batch_d = next((x for x in sample.basecalled_batches if x.name in bam_id), None)
+        batch_d = next((x for x in sample.basecalled_batches if x.name == bam_id), None)
         if batch_d is not None:
             is_r10 = any('pod5' in x.name for x in batch_d.iterdir())
             if is_r10:
@@ -40,6 +40,8 @@ def cnv_calling_arg_factory(
     print(f"basecalled_batches: {sample.basecalled_batches}")
     for bam in sample.bams:
         bam_id = bam.name.removesuffix(''.join(bam.suffixes)).split('-')[-1]
+        if bam_id == 'fastq_pass':
+            bam_id = bam.name.removesuffix(''.join(bam.suffixes)).split('-')[0].removeprefix(f"{sample.id}_")
         print(f"bam_id: {bam_id}")
         basecalling_model = define_basecalling_model(bam_id)
         if all([
