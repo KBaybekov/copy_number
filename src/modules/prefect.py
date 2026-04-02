@@ -227,7 +227,7 @@ def collect_from_prefect(
         pass
     return results
 
-def get_result_from_subflow(
+def _get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -243,11 +243,11 @@ def get_result_from_subflow(
     """
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
-    subflow =  arun(run_deployment(
+    subflow =  arun_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
-                            ))
+                            )
     
     raise_state_exception(subflow.state)
     print("Getting result of subflow!")
@@ -264,7 +264,7 @@ def get_result_from_subflow(
                     result = subflow.state.result(raise_on_failure=True) # type: ignore"""
     return result
 
-async def _get_result_from_subflow(
+async def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -280,7 +280,7 @@ async def _get_result_from_subflow(
     """
     poll_interval = 5
     try:
-        created_flow_run = run_deployment(
+        created_flow_run = await arun_deployment(
             name=deployment_name,
             parameters=run_parameters,
             **subflow_parameters,
