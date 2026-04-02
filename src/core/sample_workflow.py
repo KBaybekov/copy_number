@@ -141,7 +141,7 @@ async def sample_workflow(
                                     print(f"Stage: {stage_name}")
                                     stage_data:Dict[str, Any]|None = STAGE_DEPENDENCIES.get(stage_name)
                                     match stage_data:
-                                        case None|{}: # Stop
+                                        case None: # Stop
                                             logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")
                                         case dict() if all(isinstance(k, str) for k in stage_data.keys()): # Go
                                             # Получаем дефолтные аргументы для всех тасок стадии обработки
