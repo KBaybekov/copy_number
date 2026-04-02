@@ -275,10 +275,11 @@ async def get_result_from_subflow(
     """
     poll_interval = 5
     try:
-        created_flow_run = await arun_deployment(
+        created_flow_run = run_deployment(
             name=deployment_name,
             parameters=run_parameters,
-            **subflow_parameters
+            **subflow_parameters,
+            timeout=0
         )
 
         flow_run_id = created_flow_run.id
