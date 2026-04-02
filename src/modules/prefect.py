@@ -1,3 +1,4 @@
+from asyncio import sleep as asleep
 from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result, retry_if_exception_type
 from httpx import RequestError
@@ -11,7 +12,7 @@ from prefect.deployments import run_deployment, arun_deployment
 from prefect.exceptions import ObjectAlreadyExists, ObjectNotFound
 from prefect.futures import as_completed, PrefectFuture
 from prefect_shell import ShellOperation
-from prefect.states import raise_state_exception
+from prefect.states import get_state_result, raise_state_exception
 from prefect.tasks import Task
 from prefect.variables import Variable
 
@@ -226,6 +227,38 @@ def collect_from_prefect(
         pass
     return results
 
+async def _get_result_from_subflow(
+                            deployment_name:str|UUID,
+                            run_parameters:Dict[str, Any],
+                            subflow_parameters:Dict[str, Any]
+                           ) -> Any:
+    """
+    Запускает синхронно сабфлоу на основе развёрнутого деплоймента.
+    Args:
+        deployment_name: имя/идентификатор деплоя
+        run_parameters: аргументы для флоу-функции
+        subflow_parameters: аргументы для запуска деплоймента
+    Returns:
+        Результаты выполнения сабфлоу
+    """
+    print("Now we're in get_result_from_subflow() method")
+    # Сериализуем передаваемые в другой флоу данные
+    subflow =  await arun_deployment(
+                             name=deployment_name,
+                             parameters=run_parameters,
+                             **subflow_parameters
+                            )
+    print("run_deployment() happened! Waiting for result...")
+    match subflow:
+        case FlowRun():
+            match subflow.state:
+                case State():
+                    print("Checking for exceptions...")
+                    raise_state_exception(subflow.state)
+                    print("Getting result of subflow!")
+                    result = subflow.state.result(raise_on_failure=True) # type: ignore
+    return result
+
 async def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
@@ -240,6 +273,40 @@ async def get_result_from_subflow(
     Returns:
         Результаты выполнения сабфлоу
     """
+    poll_interval = 5
+    try:
+        created_flow_run = await arun_deployment(
+            name=deployment_name,
+            parameters=run_parameters,
+            **subflow_parameters
+        )
+
+        flow_run_id = created_flow_run.id
+
+        async with get_client() as client:
+            flow_run = await client.read_flow_run(flow_run_id)
+            while True:
+                match flow_run.state:
+                    case None:
+                        pass
+                    case State():
+                        match flow_run.state.is_final():
+                            case False:
+                                pass
+                            case True:
+                                match flow_run.state.is_completed():
+                                    case False:
+                                        pass
+                                    case True:
+                                        result = get_state_result(flow_run.state)
+                                        return result
+                await asleep(poll_interval)
+    except Exception as e:
+        # Логируем и возвращаем информацию об ошибке
+        return (False, f"Deployment failed: {str(e)}")
+        
+
+
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
     subflow =  await arun_deployment(
