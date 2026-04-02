@@ -143,19 +143,12 @@ async def cnv_calling(
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
                                                                            )))"""
-                task = get_result_from_subflow(
+                is_processing_ok, fail_desc = await get_result_from_subflow(
                                                                             deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
                                                                            )
-                res = ""
-                while not res:
-                    try:
-                        for task in as_completed([task], timeout=1):
-                            res = task.result()
-                    except Exception:
-                        pass
-                is_processing_ok, fail_desc = res
+
                 # Проверка результатов
                 match is_processing_ok:
                     case False:

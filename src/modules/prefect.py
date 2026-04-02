@@ -227,6 +227,58 @@ def collect_from_prefect(
         pass
     return results
 
+async def get_result_from_subflow(
+    deployment_name: str|UUID,
+    run_parameters: Dict[str, Any],
+    subflow_parameters: Dict[str, Any],
+    poll_interval: int = 10,
+    timeout: Optional[int] = None
+) -> Tuple[bool, str]:
+    """
+    Запускает деплоймент и ожидает его завершения с помощью polling.
+
+    Returns:
+        (success, error_message)
+        - success: True если подпоток завершился успешно
+        - error_message: описание ошибки (если success=False), иначе пустая строка
+    """
+    import asyncio
+    try:
+        flow_run = await arun_deployment(
+            name=deployment_name,
+            parameters=run_parameters,
+            **subflow_parameters,
+            timeout=0
+        )
+        flow_run_id = flow_run.id
+        start_time = asyncio.get_event_loop().time()
+
+        async with get_client() as client:
+            while True:
+                current_flow_run = await client.read_flow_run(flow_run_id)
+                state = current_flow_run.state
+
+                if state and state.is_final():
+                    if state.is_completed():
+                        return True, ""
+                    else:
+                        try:
+                            raise_state_exception(state)
+                        except Exception as e:
+                            error_msg = str(e)
+                        return False, error_msg
+
+                if timeout is not None:
+                    elapsed = asyncio.get_event_loop().time() - start_time
+                    if elapsed >= timeout:
+                        await client.cancel_flow_run(flow_run_id)
+                        return False, f"Timeout after {timeout} seconds"
+
+                await asyncio.sleep(poll_interval)
+
+    except Exception as e:
+        return False, f"Deployment failed: {str(e)}"
+
 def _get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
@@ -264,7 +316,7 @@ def _get_result_from_subflow(
                     result = subflow.state.result(raise_on_failure=True) # type: ignore"""
     return result
 
-async def get_result_from_subflow(
+async def __get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -367,6 +419,8 @@ def create_prefect_run_name(
     match type:
         case 'Pipeline':
             return f"[Pipeline]:{name}_{timestamp}"
+        case 'Task':
+            return f":{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
         case _:
             return f"[{type}]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
     
