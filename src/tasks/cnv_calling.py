@@ -153,7 +153,7 @@ async def cnv_calling(
                     try:
                         for task in as_completed([task], timeout=1):
                             res = task.result()
-                    except TimeoutError:
+                    except Exception:
                         pass
                 is_processing_ok, fail_desc = res
                 # Проверка результатов
