@@ -20,7 +20,8 @@ def alignment_arg_factory(
     # Проверяем, подходит ли вообще sample для выравнивания (ex-STAGE_CONDITIONS)
     if not all([
                 len(sample.fq_folders) != len(sample.bams),
-                sample.stage_statuses.get('basecalling') == "OK"
+                sample.stage_statuses.get('basecalling') == "OK",
+                sample.stage_statuses.get('alignment', "") != "OK"
                ]):
         return {}
     # Формируем наборы аргументов

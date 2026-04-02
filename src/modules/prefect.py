@@ -226,7 +226,7 @@ def collect_from_prefect(
         pass
     return results
 
-def get_result_from_subflow(
+async def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -242,13 +242,11 @@ def get_result_from_subflow(
     """
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
-    result = "Didn't get any result!!!"
-    from asyncio import run as arun
-    subflow =  arun(arun_deployment(
+    subflow =  await arun_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
-                            ))
+                            )
     print("run_deployment() happened! Waiting for result...")
     match subflow:
         case FlowRun():

@@ -126,7 +126,7 @@ PRE_STAGE_DEPENDIES = {
                      }
 
 # Финальный цикл обновления конфигурации стадий
-STAGE_DEPENDENCIES = {}
+STAGE_DEPENDENCIES:Dict[str, Dict[str, Any]] = {}
 for stage_name, stage_opts in PRE_STAGE_DEPENDIES.items():
     # Копируем все поля, которые не требуют специальной обработки
     new_stage = stage_opts.copy()

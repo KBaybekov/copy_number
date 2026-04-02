@@ -1,13 +1,12 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-import asyncio
+from asyncio import create_task as create_atask, gather as agather
 from pathlib import Path
-from typing import Dict, List, Optional, cast, Any, Coroutine
-from uuid import UUID
+from typing import Dict, List, Optional, Any, Coroutine
 
 from prefect import flow
-from prefect.artifacts import create_markdown_artifact
+from prefect.artifacts import acreate_markdown_artifact
 
 # Импорт кастомных модулей
 from config import main_flow_options, STAGE_DEPENDENCIES
@@ -40,7 +39,7 @@ async def main_pipeline(
             case {'prefect_tag_limit': tag_limits}:
                 for tag in tag_limits.keys():
                     for resource_type, demand in tag_limits[tag].items():
-                        await set_tag_gcl(tag=tag, resource_type=resource_type, demand=demand)
+                        create_atask(set_tag_gcl(tag=tag, resource_type=resource_type, demand=demand))
     
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
@@ -60,17 +59,18 @@ async def main_pipeline(
         return
 
     # Создаем краткий отчет (Artifact) в UI о начале работы
-    await cast(Coroutine[Any, Any, UUID], create_markdown_artifact(
-                                                                   key="run-summary",
-                                                                   markdown=(
-                                                                             "## Сводка запуска\n"
-                                                                             f"- **Количество образцов:** `{len(samples)}`\n"
-                                                                             f"- **Количество образцов, готовых к дальнейшей обработке:** `{len([s for s in samples if not s.finished])}`\n"
-                                                                             f"- **Таблица с исходными данными:** `{input_path.name}`\n"
-                                                                             f"{status_str} \n"
-                                                                            ),
-                                                                   description="Параметры запуска"
-                                                                  ))
+    # await cast(Coroutine[Any, Any, UUID], 
+    create_atask(acreate_markdown_artifact(
+                                           key="run-summary",
+                                           markdown=(
+                                                     "## Сводка запуска\n"
+                                                     f"- **Количество образцов:** `{len(samples)}`\n"
+                                                     f"- **Количество образцов, готовых к дальнейшей обработке:** `{len([s for s in samples if not s.finished])}`\n"
+                                                     f"- **Таблица с исходными данными:** `{input_path.name}`\n"
+                                                     f"{status_str} \n"
+                                                    ),
+                                            description="Параметры запуска"
+                                           ))
 
     # Порождение независимых потоков (Subflows) для каждого сэмпла   
     logger.info(f"Инициализация асинхронных потоков для {len(samples)} образцов...")
@@ -86,7 +86,7 @@ async def main_pipeline(
                                                                                                                   ),
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
                                                                             )(s) for s in samples if not s.finished]
-    results: List[Sample | BaseException] = await asyncio.gather(*tasks, return_exceptions=True)
+    results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     
     # Анализ итогов пачки
     success_count = sum(1 for r in results if isinstance(r, Sample) and r.success)

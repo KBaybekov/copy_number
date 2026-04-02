@@ -118,7 +118,7 @@ def compute_diff(
 
     return diff
 
-def apply_changes(
+async def apply_changes(
                   obj: Any,
                   operations: Dict[str, Dict[str, Any]]
                  ) -> None:
@@ -137,7 +137,7 @@ def apply_changes(
 
         # Если поле — dataclass, рекурсивно применяем операции к нему
         if is_dataclass(current) and isinstance(field_ops, dict):
-            apply_changes(current, field_ops)
+            await apply_changes(current, field_ops)
             continue
 
         # Иначе применяем операции к текущему значению
