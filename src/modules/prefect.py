@@ -227,7 +227,7 @@ def collect_from_prefect(
         pass
     return results
 
-async def get_result_from_subflow(
+def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
