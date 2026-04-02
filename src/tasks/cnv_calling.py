@@ -1,4 +1,4 @@
-from asyncio import create_task as create_atask, gather
+from asyncio import create_task as create_atask, gather, as_completed
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
 
@@ -143,11 +143,19 @@ async def cnv_calling(
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
                                                                            )))"""
-                is_processing_ok, fail_desc = await get_result_from_subflow(
+                task = get_result_from_subflow(
                                                                             deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
                                                                            )
+                res = ""
+                while not res:
+                    try:
+                        for task in as_completed([task], timeout=1):
+                            res = task.result()
+                    except TimeoutError:
+                        pass
+                is_processing_ok, fail_desc = res
                 # Проверка результатов
                 match is_processing_ok:
                     case False:
