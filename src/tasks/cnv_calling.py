@@ -138,12 +138,16 @@ async def cnv_calling(
 
                 print("Starting Nexflow subflow...")
                 # Запуск пайплайна Nextflow и получение результата
-                res = gather(create_atask(get_result_from_subflow(
+                """res = gather(create_atask(get_result_from_subflow(
                                                                             deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
-                                                                           )))
-                is_processing_ok, fail_desc = res
+                                                                           )))"""
+                is_processing_ok, fail_desc = await get_result_from_subflow(
+                                                                            deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
+                                                                            run_parameters=run_parameters,
+                                                                            subflow_parameters=subflow_params
+                                                                           )
                 # Проверка результатов
                 match is_processing_ok:
                     case False:
