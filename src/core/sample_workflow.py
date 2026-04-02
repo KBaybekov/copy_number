@@ -219,7 +219,7 @@ async def sample_workflow(
                                 
                                 # Ждем завершения любой из запущенных задач
                                 just_finished_tasks: List[str] = []
-                                completed_tasks = collect_from_prefect(active_tasks, left_time)
+                                completed_tasks = await collect_from_prefect(active_tasks, left_time)
                                 match dict_non_empty(completed_tasks):
                                     case False:
                                         logger.debug(f"Ни одна задача не завершилась за отведенное время [{left_time.__round__(2)} sec.]")
