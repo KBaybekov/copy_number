@@ -1,4 +1,4 @@
-from asyncio import sleep as asleep
+from asyncio import sleep as asleep, run as arun
 from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result, retry_if_exception_type
 from httpx import RequestError
@@ -243,11 +243,11 @@ def get_result_from_subflow(
     """
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
-    subflow =  run_deployment(
+    subflow =  arun(run_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
-                            )
+                            ))
     
     raise_state_exception(subflow.state)
     print("Getting result of subflow!")
