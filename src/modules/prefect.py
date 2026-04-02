@@ -196,7 +196,7 @@ def submit_to_prefect(
             run_args.update(**prefect_subflow_params)
     return handler.with_options(task_run_name=f"[Task] {task_name}", **prefect_task_params).submit(**run_args)
 
-def _collect_from_prefect(
+def __collect_from_prefect(
                          tasks: Dict[str, PrefectFuture],
                          timeout:float
                         ) -> Dict[str, Any]:
@@ -228,7 +228,7 @@ def _collect_from_prefect(
     return results
 
 
-async def collect_from_prefect(
+async def _collect_from_prefect(
     tasks: Dict[str, PrefectFuture],
     timeout: float
 ) -> Dict[str, Any]:
@@ -241,6 +241,37 @@ async def collect_from_prefect(
             results[task_name] = result
     except TimeoutError:
         pass
+    return results
+
+async def collect_from_prefect(
+    tasks: Dict[str, PrefectFuture],
+    timeout: float
+) -> Dict[str, Any]:
+    """
+    Асинхронно собирает результаты PrefectFuture, возвращая словарь {имя_задачи: результат}.
+    """
+    import asyncio
+    results = {}
+    # Оставляем только PrefectFuture (если есть другие типы – не обрабатываем)
+    prefect_futures = {name: task for name, task in tasks.items() if isinstance(task, PrefectFuture)}
+    if not prefect_futures:
+        return results
+
+    # Вспомогательная корутина, возвращающая (имя, результат)
+    async def named_coro(name: str, future: PrefectFuture):
+        return name, await future
+
+    coros = [named_coro(name, future) for name, future in prefect_futures.items()]
+
+    try:
+        # asyncio.as_completed возвращает итератор корутин, которые нужно дождаться
+        for coro in asyncio.as_completed(coros, timeout=timeout):
+            name, result = await coro
+            results[name] = result
+    except TimeoutError:
+        # По таймауту просто возвращаем то, что успели собрать
+        pass
+
     return results
 
 async def get_result_from_subflow(
