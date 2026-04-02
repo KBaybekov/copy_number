@@ -259,7 +259,7 @@ async def collect_from_prefect(
 
     # Вспомогательная корутина, возвращающая (имя, результат)
     async def named_coro(name: str, future: PrefectFuture):
-        return name, await future
+        return name, await future.result()
 
     coros = [named_coro(name, future) for name, future in prefect_futures.items()]
 
