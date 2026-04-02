@@ -227,7 +227,7 @@ def collect_from_prefect(
         pass
     return results
 
-async def _get_result_from_subflow(
+async def get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -243,12 +243,17 @@ async def _get_result_from_subflow(
     """
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
-    subflow =  await arun_deployment(
+    subflow =  run_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
                             )
-    print("run_deployment() happened! Waiting for result...")
+    
+    raise_state_exception(subflow.state)
+    print("Getting result of subflow!")
+    result = subflow.state.result(raise_on_failure=True) # type: ignore
+
+    """print("run_deployment() happened! Waiting for result...")
     match subflow:
         case FlowRun():
             match subflow.state:
@@ -256,10 +261,10 @@ async def _get_result_from_subflow(
                     print("Checking for exceptions...")
                     raise_state_exception(subflow.state)
                     print("Getting result of subflow!")
-                    result = subflow.state.result(raise_on_failure=True) # type: ignore
+                    result = subflow.state.result(raise_on_failure=True) # type: ignore"""
     return result
 
-async def get_result_from_subflow(
+async def _get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
