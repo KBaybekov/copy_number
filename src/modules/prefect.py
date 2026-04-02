@@ -196,7 +196,7 @@ def submit_to_prefect(
             run_args.update(**prefect_subflow_params)
     return handler.with_options(task_run_name=f"[Task] {task_name}", **prefect_task_params).submit(**run_args)
 
-def collect_from_prefect(
+def _collect_from_prefect(
                          tasks: Dict[str, PrefectFuture],
                          timeout:float
                         ) -> Dict[str, Any]:
@@ -227,6 +227,22 @@ def collect_from_prefect(
         pass
     return results
 
+
+async def collect_from_prefect(
+    tasks: Dict[str, PrefectFuture],
+    timeout: float
+) -> Dict[str, Any]:
+    results = {}
+    prefect_futures = {name: task for name, task in tasks.items() if isinstance(task, PrefectFuture)}
+    try:
+        async for future in as_completed(list(prefect_futures.values()), timeout=timeout):
+            task_name = next((k for k, v in prefect_futures.items() if v == future), 'unknown')
+            result = await future  # или future.result() – await предпочтительнее
+            results[task_name] = result
+    except TimeoutError:
+        pass
+    return results
+
 async def get_result_from_subflow(
     deployment_name: str|UUID,
     run_parameters: Dict[str, Any],
@@ -242,42 +258,27 @@ async def get_result_from_subflow(
         - success: True если подпоток завершился успешно
         - error_message: описание ошибки (если success=False), иначе пустая строка
     """
-    import asyncio
+    poll_interval = 5
     try:
-        flow_run = await arun_deployment(
+        created_flow_run = await arun_deployment(
             name=deployment_name,
             parameters=run_parameters,
             **subflow_parameters,
             timeout=0
         )
-        flow_run_id = flow_run.id
-        start_time = asyncio.get_event_loop().time()
-
+        flow_run_id = created_flow_run.id
         async with get_client() as client:
             while True:
-                current_flow_run = await client.read_flow_run(flow_run_id)
-                state = current_flow_run.state
-
-                if state and state.is_final():
-                    if state.is_completed():
-                        return True, ""
+                flow_run = await client.read_flow_run(flow_run_id)  # перечитываем каждую итерацию
+                if flow_run.state and flow_run.state.is_final():
+                    if flow_run.state.is_completed():
+                        return get_state_result(flow_run.state)
                     else:
-                        try:
-                            raise_state_exception(state)
-                        except Exception as e:
-                            error_msg = str(e)
-                        return False, error_msg
-
-                if timeout is not None:
-                    elapsed = asyncio.get_event_loop().time() - start_time
-                    if elapsed >= timeout:
-                        await client.cancel_flow_run(flow_run_id)
-                        return False, f"Timeout after {timeout} seconds"
-
-                await asyncio.sleep(poll_interval)
-
+                        # обработать ошибку, вернуть (False, причина)
+                        return (False, f"Subflow failed: {flow_run.state.message}")
+                await asleep(poll_interval)
     except Exception as e:
-        return False, f"Deployment failed: {str(e)}"
+        return (False, f"Deployment failed: {str(e)}")
 
 def _get_result_from_subflow(
                             deployment_name:str|UUID,
