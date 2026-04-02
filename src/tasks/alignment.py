@@ -6,7 +6,7 @@ from prefect import task
 
 from modules.prefect import create_prefect_run_name, get_result_from_subflow
 
-def alignment_arg_factory(
+async def alignment_arg_factory(
                           sample: Sample,
                           parent_flow_id:str,
                           stage_dirs: List[Path],
