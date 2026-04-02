@@ -243,11 +243,12 @@ def get_result_from_subflow(
     print("Now we're in get_result_from_subflow() method")
     # Сериализуем передаваемые в другой флоу данные
     result = "Didn't get any result!!!"
-    subflow = arun_deployment(
+    from asyncio import run as arun
+    subflow =  arun(arun_deployment(
                              name=deployment_name,
                              parameters=run_parameters,
                              **subflow_parameters
-                            )
+                            ))
     print("run_deployment() happened! Waiting for result...")
     match subflow:
         case FlowRun():
