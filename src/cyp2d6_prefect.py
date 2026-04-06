@@ -40,8 +40,7 @@ async def main_pipeline(
                     'cat /etc/apt/sources.list',
                     'apt-get update',
                     'apt-get install -y curl openjdk-21-jdk-headless',
-                    'rm -rf /var/lib/apt/lists/*',
-                    "java --version"
+                    "java --version",
                     'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
                     ]
     async with ShellOperation(
