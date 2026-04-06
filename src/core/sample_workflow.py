@@ -154,7 +154,7 @@ async def sample_workflow(
                                                     logger.error(f"Отсутствует функция формирования аргументов для стадии обработки: {stage_name}")
                                                     continue
                                                 case _ if callable(arg_factory): # Go
-                                                    handler: Task[..., Tuple[Dict[str, Dict[str, Any]], bool]]|None = stage_data.get('handler')
+                                                    handler: Coroutine[Any, Any, Tuple[Dict[str, Dict[str, Any]], bool]]|None = stage_data.get('handler') #Task[..., Tuple[Dict[str, Dict[str, Any]], bool]]|None
                                                     match handler:
                                                         case None: # Stop
                                                             logger.error(f"Хэндлер для стадии '{stage_name}' не найден")

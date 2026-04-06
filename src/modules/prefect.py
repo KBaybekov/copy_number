@@ -303,7 +303,7 @@ async def get_result_from_subflow(
                 flow_run = await client.read_flow_run(flow_run_id)  # перечитываем каждую итерацию
                 if flow_run.state and flow_run.state.is_final():
                     if flow_run.state.is_completed():
-                        return get_state_result(flow_run.state)
+                        return await get_state_result(flow_run.state)
                     else:
                         # обработать ошибку, вернуть (False, причина)
                         return (False, f"Subflow failed: {flow_run.state.message}")
