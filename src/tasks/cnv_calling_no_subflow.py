@@ -153,14 +153,17 @@ async def cnv_calling_no_subflow(
                                                     )]
                 # Добавляем подготовительные и постпроцессинговые команды
                 nextflow_prep_cmds:List[str] = [
-                    #'cat /etc/apt/sources.list',
-                    #'echo "deb cdrom://[Official Debian GNU/Linux Live 13.0.0 kde 2025-08-09T10:59:34Z]/ trixie main non-free-firmware" >> /etc/apt/sources.list',
-                    #'cat /etc/apt/sources.list',
-                    #'apt-get update',
-                    #'apt-get install -y curl openjdk-21-jdk-headless',
-                    #'rm -rf /var/lib/apt/lists/*',
+                    'cat /etc/apt/sources.list',
+                    '''echo "deb http://debian.org trixie main
+                        deb http://debian.org trixie-security main
+                        deb http://debian.org trixie-updates main" | sudo tee -a /etc/apt/sources.list
+                    ''',
+                    'cat /etc/apt/sources.list',
+                    'apt-get update',
+                    'apt-get install -y curl openjdk-21-jdk-headless',
+                    'rm -rf /var/lib/apt/lists/*',
                     "java --version"
-                    #'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
+                    'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
                     ]
                 shell_cmds:List[str] = nextflow_prep_cmds + nextflow_command
                 
