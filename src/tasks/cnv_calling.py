@@ -1,4 +1,4 @@
-from asyncio import create_task as create_atask, gather, as_completed
+from asyncio import create_task as create_atask, gather, as_completed, run as arun
 from typing import Any, Dict, List, Tuple
 from pathlib import Path
 
@@ -143,11 +143,11 @@ async def cnv_calling(
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
                                                                            )))"""
-                is_processing_ok, fail_desc = await get_result_from_subflow(
+                is_processing_ok, fail_desc = arun(get_result_from_subflow(
                                                                             deployment_name="nextflow-pipeline-cpu/nextflow_pipeline_cpu",
                                                                             run_parameters=run_parameters,
                                                                             subflow_parameters=subflow_params
-                                                                           )
+                                                                           ))
 
                 # Проверка результатов
                 match is_processing_ok:
