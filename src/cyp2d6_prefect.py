@@ -7,6 +7,8 @@ from typing import Dict, List, Optional, Any, Coroutine
 
 from prefect import flow
 from prefect.artifacts import acreate_markdown_artifact
+from prefect_shell import ShellOperation
+
 
 # Импорт кастомных модулей
 from config import main_flow_options, STAGE_DEPENDENCIES
@@ -28,6 +30,30 @@ async def main_pipeline(
     :param table_input: Путь к исходной таблице Excel с метаданными.
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
+        #УДАЛИТЬ, ВРЕМЕННОЕ РЕШЕНИЕ ДЛЯ ЗАПУСКА NEXTFLOW В ЭТОМ ЖЕ КОНТЕЙНЕРЕ
+    prep_cmds = [
+                    'cat /etc/apt/sources.list',
+                    '''echo "deb http://debian.org trixie main
+                        deb http://debian.org trixie-security main
+                        deb http://debian.org trixie-updates main" | sudo tee -a /etc/apt/sources.list
+                    ''',
+                    'cat /etc/apt/sources.list',
+                    'apt-get update',
+                    'apt-get install -y curl openjdk-21-jdk-headless',
+                    'rm -rf /var/lib/apt/lists/*',
+                    "java --version"
+                    'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
+                    ]
+    async with ShellOperation(
+                                        commands=prep_cmds,
+                                        env={"NXF_HOME":"/mnt/cephfs8_rw/nanopore2/service/nextflow/"},
+                                        stream_output=True
+                                        ) as shell_op:
+                    # Запускаем процесс
+                    process = await shell_op.atrigger()
+                    # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
+                    await process.await_for_completion()
+
     logger = await get_logger()
 
     # Устанавливаем tag-based лимиты одновременной обработки
