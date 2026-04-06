@@ -152,7 +152,11 @@ async def cnv_calling_no_subflow(
                                                     data=cmd_data
                                                     )]
                 # Добавляем подготовительные и постпроцессинговые команды
-                nextflow_prep_cmds:List[str] = ['curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/']
+                nextflow_prep_cmds:List[str] = [
+                    'apt-get update',
+                    'apt-get install -y curl openjdk-21-jdk-headless',
+                    'rm -rf /var/lib/apt/lists/*',
+                    'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/']
                 shell_cmds:List[str] = nextflow_prep_cmds + nextflow_command
                 
                 # Запуск пайплайна Nextflow и получение результата

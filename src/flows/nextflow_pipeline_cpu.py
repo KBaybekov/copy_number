@@ -16,7 +16,7 @@ RETRY_SENSITIVE_ACTIONS = retry(
 
 @RETRY_SENSITIVE_ACTIONS
 async def get_prefect_variable(variable_name: str) -> str:
-    return Variable.get(variable_name).__str__()
+    return str(await Variable.aget(variable_name))
 
 
 async def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
