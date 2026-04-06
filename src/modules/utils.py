@@ -18,7 +18,7 @@ def sanitize_artifact_key(raw_key: str) -> str:
     # Если строка пуста, возвращаем запасной вариант
     return key or 'empty-key'
 
-def render_text(template:str, data:dict) -> str:
+async def render_text(template:str, data:dict) -> str:
     """
     Формирует команду для запуска в оболочке на основе шаблона и данных.
     """

@@ -1,7 +1,7 @@
 from asyncio import run as arun
 from datetime import datetime
 from pathlib import Path
-from typing import Any, Dict
+from typing import Any, Dict, List
 from yaml import safe_load
 
 from prefect.task_runners import ThreadPoolTaskRunner
@@ -12,7 +12,56 @@ from modules.prefect import create_prefect_run_name
 
 from tasks.alignment import alignment, alignment_arg_factory
 from tasks.cnv_calling import cnv_calling, cnv_calling_arg_factory
+from tasks.cnv_calling_no_subflow import cnv_calling_no_subflow, cnv_calling_no_subflow_arg_factory
 
+def form_stage_data(
+                    template:Dict[str, Dict[str, Any]],
+                    subflow_args:Dict[str, Any],
+                    task_args:Dict[str, Any],
+                    active_tasks:List[str]
+                   ) -> Dict[str, Dict[str, Any]]:
+    STAGE_DEPENDENCIES = {}
+    for stage_name, stage_opts in template.items():
+        if stage_name not in active_tasks:
+            continue
+        # Копируем все поля, которые не требуют специальной обработки
+        new_stage = stage_opts.copy()
+
+        # --- Обработка аргументов для подпотоков (subflow) ---
+        stage_subflow_args = stage_opts.get('prefect_subflow_args')
+        if stage_subflow_args is None:
+            new_stage['prefect_subflow_args'] = subflow_args
+        else:
+            # Базовые аргументы из DEFAULT_SUBFLOW_ARGS
+            merged = DEFAULT_SUBFLOW_ARGS.copy()
+            # Обновляем явно указанными значениями из стадии (теги обработаем отдельно)
+            for key, value in stage_subflow_args.items():
+                if key != 'tags':
+                    merged[key] = value
+            # Собираем теги из трёх источников: базовые, из конфига стадии, из prefect_tag_limit
+            base_tags = DEFAULT_SUBFLOW_ARGS.get('tags', [])
+            stage_tags = subflow_args.get('tags', [])
+            limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
+            merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
+            new_stage['prefect_subflow_args'] = merged
+
+        # --- Обработка аргументов для задач (task) ---
+        stage_task_args = stage_opts.get('prefect_task_args')
+        if stage_task_args is None:
+            new_stage['prefect_task_args'] = task_args
+        else:
+            merged = DEFAULT_TASK_ARGS.copy()
+            for key, value in stage_task_args.items():
+                if key != 'tags':
+                    merged[key] = value
+            base_tags = DEFAULT_TASK_ARGS.get('tags', [])
+            stage_tags = stage_task_args.get('tags', [])
+            limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
+            merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
+            new_stage['prefect_task_args'] = merged
+
+        STAGE_DEPENDENCIES[stage_name] = new_stage
+    return STAGE_DEPENDENCIES
 
 SAMPLE_CSV = Path('/mnt/cephfs8_rw/nanopore2/service/code/github/neurology/cyp2d6/result/CYP2D6_samples.tsv')
 
@@ -29,7 +78,6 @@ GPUS_PER_WORKER = 0
   # RAM
 RAM_PER_WORKER = 2000
 RAM_MAX_LOAD_PERC = 70
-
 
 
 MAX_BASECALL = 5
@@ -89,6 +137,7 @@ DEFAULT_TASK_ARGS = {
 
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
+active_tasks = ['cnv_calling_no_subflow']
 PRE_STAGE_DEPENDIES = {
                       'alignment':{
                                    'args':{'threads_per_alignment':THREADS_PER_ALIGNMENT},
@@ -123,46 +172,30 @@ PRE_STAGE_DEPENDIES = {
                                                         },
                                     'handler': cnv_calling,
                                     'arg_factory': cnv_calling_arg_factory
+                                  },
+                      'cnv_calling_no_subflow':{
+                                   'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
+                                   'prefect_subflow_args': None,
+                                   'prefect_task_args': {
+                                                         'name':"cnv_calling_no_subflow_nanopore",
+                                                         'description': 'Поиск CNV ONT без subflow',
+                                                         'timeout_seconds': CNV_CALLING_TIMEOUT,
+                                                         'tags': ['nanopore', 'cnv_calling', 'cpu', 'nextflow', 'long']                                                        
+                                                        },
+                                    'prefect_tag_limit':{
+                                                         'nanopore_cnv_calling_cpu': {'cpu':CPUS_CNV_CALLING},
+                                                         'nanopore_cnv_calling_gpu': {'gpu':None},
+                                                         'nanopore_cnv_calling_ram': {'ram':None},
+                                                        },
+                                    'handler': cnv_calling_no_subflow,
+                                    'arg_factory': cnv_calling_no_subflow_arg_factory
                                   }
                      }
-
 # Финальный цикл обновления конфигурации стадий
-STAGE_DEPENDENCIES:Dict[str, Dict[str, Any]] = {}
-for stage_name, stage_opts in PRE_STAGE_DEPENDIES.items():
-    # Копируем все поля, которые не требуют специальной обработки
-    new_stage = stage_opts.copy()
+STAGE_DEPENDENCIES = form_stage_data(
+                                     template=PRE_STAGE_DEPENDIES,
+                                     subflow_args=DEFAULT_SUBFLOW_ARGS,
+                                     task_args=DEFAULT_TASK_ARGS,
+                                     active_tasks=active_tasks
+                                    )
 
-    # --- Обработка аргументов для подпотоков (subflow) ---
-    subflow_args = stage_opts.get('prefect_subflow_args')
-    if subflow_args is None:
-        new_stage['prefect_subflow_args'] = DEFAULT_SUBFLOW_ARGS
-    else:
-        # Базовые аргументы из DEFAULT_SUBFLOW_ARGS
-        merged = DEFAULT_SUBFLOW_ARGS.copy()
-        # Обновляем явно указанными значениями из стадии (теги обработаем отдельно)
-        for key, value in subflow_args.items():
-            if key != 'tags':
-                merged[key] = value
-        # Собираем теги из трёх источников: базовые, из конфига стадии, из prefect_tag_limit
-        base_tags = DEFAULT_SUBFLOW_ARGS.get('tags', [])
-        stage_tags = subflow_args.get('tags', [])
-        limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
-        merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
-        new_stage['prefect_subflow_args'] = merged
-
-    # --- Обработка аргументов для задач (task) ---
-    task_args = stage_opts.get('prefect_task_args')
-    if task_args is None:
-        new_stage['prefect_task_args'] = DEFAULT_TASK_ARGS
-    else:
-        merged = DEFAULT_TASK_ARGS.copy()
-        for key, value in task_args.items():
-            if key != 'tags':
-                merged[key] = value
-        base_tags = DEFAULT_TASK_ARGS.get('tags', [])
-        stage_tags = task_args.get('tags', [])
-        limit_tags = list(stage_opts.get('prefect_tag_limit', {}).keys())
-        merged['tags'] = list(set(base_tags + stage_tags + limit_tags))
-        new_stage['prefect_task_args'] = merged
-
-    STAGE_DEPENDENCIES[stage_name] = new_stage

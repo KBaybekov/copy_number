@@ -15,11 +15,11 @@ RETRY_SENSITIVE_ACTIONS = retry(
 
 
 @RETRY_SENSITIVE_ACTIONS
-def get_prefect_variable(variable_name: str) -> str:
+async def get_prefect_variable(variable_name: str) -> str:
     return Variable.get(variable_name).__str__()
 
 
-def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
+async def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
     """
     Интерпретирует числовой exit-код.
     Args:
@@ -36,7 +36,7 @@ def interpret_exit_code(exit_code:int) -> Tuple[bool, str]:
         case _:
             return (False, f'Processing failed, exitcode: {exit_code}')
 
-def render_text(template:str, data:dict) -> str:
+async def render_text(template:str, data:dict) -> str:
     """
     Формирует команду для запуска в оболочке на основе шаблона и данных.
     """
@@ -93,14 +93,13 @@ async def nextflow_pipeline_cpu(
                 case _:
                     arg_val = []
         optional_shell_args.update({arg:arg_val})
-    
-    
+
     # Формируем файл конфигурации
     with open(cfg_file, 'w') as f:
-        config = render_text(
-                             template=get_prefect_variable(cfg_template),
-                             data=configuration_parameters
-                            )
+        config = await render_text(
+                                   template=await get_prefect_variable(cfg_template),
+                                   data=configuration_parameters
+                                  )
         f.write(config)
 
     # Формируем данные для заполнения шаблона
@@ -109,12 +108,15 @@ async def nextflow_pipeline_cpu(
                 "pipeline":pipeline,
                 "nxf_cfg": cfg_file
                }
+    
+    print(f"cfg_file:\t{cfg_file}\n")
+    # ДОПИСАТЬ
 
     # Формируем shell-команду
-    nextflow_command = [render_text(
-                                   template=get_prefect_variable("nxf_cmd_docker"),
-                                   data=cmd_data
-                                  )]
+    nextflow_command = [await render_text(
+                                          template=await get_prefect_variable("nxf_cmd_docker"),
+                                          data=cmd_data
+                                         )]
     # Добавляем подготовительные и постпроцессинговые команды
     shell_cmds:List[str] = optional_shell_args['cmds_before'] + nextflow_command + optional_shell_args['cmds_after']
     
@@ -130,4 +132,4 @@ async def nextflow_pipeline_cpu(
         # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
         await process.await_for_completion()
         return_code:int = process.return_code # type: ignore
-    return interpret_exit_code(return_code)
+    return await interpret_exit_code(return_code)
