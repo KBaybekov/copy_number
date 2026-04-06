@@ -1,3 +1,4 @@
+from asyncio import run as arun
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict
@@ -51,11 +52,11 @@ with open((Path(__file__).resolve().parents[1] / 'main_flow_options.yaml'), 'r')
     main_flow_options: Dict[str, Any] = safe_load(file)
 # Additional options for customizing main flow
 main_flow_options.update({
-                          "flow_run_name": create_prefect_run_name(
+                          "flow_run_name": arun(create_prefect_run_name(
                                                                    type="Pipeline",
                                                                    name=main_flow_options['name'],
                                                                    timestamp=formatted_now
-                                                                  ),
+                                                                  )),
                           "task_runner": ThreadPoolTaskRunner()
                          })
 
