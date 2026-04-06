@@ -288,15 +288,9 @@ async def get_result_from_subflow(
         - success: True если подпоток завершился успешно
         - error_message: описание ошибки (если success=False), иначе пустая строка
     """
-    poll_interval = 5
-    try:
-        created_flow_run = run_deployment(
-            name=deployment_name,
-            parameters=run_parameters,
-            **subflow_parameters,
-            timeout=0
-        )
-        flow_run_id = created_flow_run.id
+    async def check_flow_run(flow_run: FlowRun):
+        poll_interval = 5
+        flow_run_id = flow_run.id
         async with get_client() as client:
             while True:
                 flow_run = await client.read_flow_run(flow_run_id)  # перечитываем каждую итерацию
@@ -307,6 +301,33 @@ async def get_result_from_subflow(
                         # обработать ошибку, вернуть (False, причина)
                         return (False, f"Subflow failed: {flow_run.state.message}")
                 await asleep(poll_interval)
+
+    
+    try:
+        created_flow_run = run_deployment(
+            name=deployment_name,
+            parameters=run_parameters,
+            **subflow_parameters,
+            timeout=0
+        )
+        match created_flow_run:
+            case FlowRun():
+                result = await check_flow_run(created_flow_run)
+            case Coroutine():
+                result = await check_flow_run(await created_flow_run)
+        return result
+                
+        """flow_run_id = created_flow_run.id
+        async with get_client() as client:
+            while True:
+                flow_run = await client.read_flow_run(flow_run_id)  # перечитываем каждую итерацию
+                if flow_run.state and flow_run.state.is_final():
+                    if flow_run.state.is_completed():
+                        return await get_state_result(flow_run.state)
+                    else:
+                        # обработать ошибку, вернуть (False, причина)
+                        return (False, f"Subflow failed: {flow_run.state.message}")
+                await asleep(poll_interval)"""
     except Exception as e:
         return (False, f"Deployment failed: {str(e)}")
 
