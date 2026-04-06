@@ -225,7 +225,13 @@ async def sample_workflow(
                                         logger.debug(f"Ни одна задача не завершилась за отведенное время [{left_time.__round__(2)} sec.]")
                                     case True:
                                         for task_name, task_result in completed_tasks.items():
-                                            changes, is_processing_ok = task_result
+                                            #changes, is_processing_ok = task_result
+                                            if isinstance(task_result, Exception):
+                                                logger.error(f"Task {task_name} failed with exception: {task_result}")
+                                                changes = {}
+                                                is_processing_ok = False
+                                            else:
+                                                changes, is_processing_ok = task_result
                                             print(f"Task: {task_name}\nChanges: {changes}\nProcessing successful: {is_processing_ok}")
                                             # Обновляем основной Sample
                                             await apply_changes(sample, changes)

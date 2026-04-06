@@ -242,7 +242,7 @@ async def _collect_from_prefect(
         pass
     return results
 
-async def collect_from_prefect(
+async def _my_collect_from_prefect(
     tasks: Dict[str, PrefectFuture],
     timeout: float
 ) -> Dict[str, Any]:
@@ -273,7 +273,68 @@ async def collect_from_prefect(
 
     return results
 
+async def collect_from_prefect(
+    tasks: dict[str, PrefectFuture],
+    timeout: float
+) -> dict[str, Any]:
+    results = {}
+    if not tasks:
+        return results
+    coros = [ (name, fut) for name, fut in tasks.items() ]
+    try:
+        for coro in asyncio.as_completed([fut for _, fut in coros], timeout=timeout):
+            # as_completed возвращает awaitable, который нужно дождаться
+            future = await coro
+            # найти имя задачи, соответствующей этому future
+            name = next(n for n, f in tasks.items() if f == future)
+            results[name] = future.result()  # или await future, если future поддерживает await
+    except TimeoutError:
+        pass
+    return results
+
+import asyncio
+from prefect.deployments import run_deployment  # если нужен синхронный, но лучше arun_deployment
+from prefect.client import get_client
+
 async def get_result_from_subflow(
+    deployment_name: str,
+    run_parameters: dict,
+    subflow_parameters: dict,
+    poll_interval: int = 10,
+    timeout: int | None = 3600  # таймаут по умолчанию 1 час
+) -> tuple[bool, str]:
+    """
+    Асинхронный запуск деплоймента и ожидание его завершения.
+    Возвращает (success, error_message).
+    """
+    try:
+        # Используем асинхронный запуск деплоймента
+        from prefect.deployments import arun_deployment
+        flow_run = await arun_deployment(
+            name=deployment_name,
+            parameters=run_parameters,
+            timeout=0,
+            **subflow_parameters
+        )
+        flow_run_id = flow_run.id
+        start = asyncio.get_event_loop().time()
+        async with get_client() as client:
+            while True:
+                elapsed = asyncio.get_event_loop().time() - start
+                if timeout and elapsed > timeout:
+                    return (False, f"Timeout after {timeout} seconds")
+                flow_run = await client.read_flow_run(flow_run_id)
+                if flow_run.state and flow_run.state.is_final():
+                    if flow_run.state.is_completed():
+                        return (True, "")
+                    else:
+                        msg = flow_run.state.message or "Subflow failed"
+                        return (False, msg)
+                await asyncio.sleep(poll_interval)
+    except Exception as e:
+        return (False, f"Deployment failed: {str(e)}")
+
+async def _my_get_result_from_subflow(
     deployment_name: str|UUID,
     run_parameters: Dict[str, Any],
     subflow_parameters: Dict[str, Any],
@@ -302,7 +363,6 @@ async def get_result_from_subflow(
                         return (False, f"Subflow failed: {flow_run.state.message}")
                 await asleep(poll_interval)
 
-    
     try:
         created_flow_run = run_deployment(
             name=deployment_name,
@@ -316,18 +376,6 @@ async def get_result_from_subflow(
             case _ if iscoroutine(created_flow_run):
                 result = await check_flow_run(await created_flow_run)
         return result
-                
-        """flow_run_id = created_flow_run.id
-        async with get_client() as client:
-            while True:
-                flow_run = await client.read_flow_run(flow_run_id)  # перечитываем каждую итерацию
-                if flow_run.state and flow_run.state.is_final():
-                    if flow_run.state.is_completed():
-                        return await get_state_result(flow_run.state)
-                    else:
-                        # обработать ошибку, вернуть (False, причина)
-                        return (False, f"Subflow failed: {flow_run.state.message}")
-                await asleep(poll_interval)"""
     except Exception as e:
         return (False, f"Deployment failed: {str(e)}")
 
