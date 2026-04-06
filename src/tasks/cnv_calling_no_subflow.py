@@ -153,7 +153,7 @@ async def cnv_calling_no_subflow(
                                                     )]
                 # Добавляем подготовительные и постпроцессинговые команды
                 nextflow_prep_cmds:List[str] = ['curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/']
-                shell_cmds:List[str] = nextflow_command
+                shell_cmds:List[str] = nextflow_prep_cmds + nextflow_command
                 
                 # Запуск пайплайна Nextflow и получение результата
                 async with ShellOperation(
