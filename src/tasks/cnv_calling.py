@@ -23,7 +23,7 @@ async def cnv_calling_arg_factory(
         """
         Определение модели бейсколлинга по типу исходных данных
         """
-        batch_d = next((x for x in sample.basecalled_batches if x.name == bam_id), None)
+        batch_d = next((x for x in sample.basecalled_batches if bam_id in x.name), None)
         if batch_d is not None:
             is_r10 = any('pod5' in x.name for x in batch_d.iterdir())
             if is_r10:
