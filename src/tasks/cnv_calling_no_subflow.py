@@ -152,12 +152,13 @@ async def cnv_calling_no_subflow(
                                                     data=cmd_data
                                                     )]
                 # Добавляем подготовительные и постпроцессинговые команды
+                nextflow_prep_cmds:List[str] = ['curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/']
                 shell_cmds:List[str] = nextflow_command
                 
                 # Запуск пайплайна Nextflow и получение результата
                 async with ShellOperation(
                                         commands=shell_cmds,
-                                        env={},
+                                        env={"NXF_HOME":"/mnt/cephfs8_rw/nanopore2/service/nextflow/"},
                                         working_dir=work_dir,
                                         stream_output=True
                                         ) as shell_op:
