@@ -174,7 +174,7 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
             await create_or_update()
     return None
 
-def submit_to_prefect(
+async def submit_to_prefect(
                       prefect_task_params: Dict[str, Any],
                       run_args: Dict[str, Any],
                       handler: Task,
@@ -311,7 +311,7 @@ async def get_result_from_subflow(
     except Exception as e:
         return (False, f"Deployment failed: {str(e)}")
 
-def _get_result_from_subflow(
+async def _get_result_from_subflow(
                             deployment_name:str|UUID,
                             run_parameters:Dict[str, Any],
                             subflow_parameters:Dict[str, Any]
@@ -415,7 +415,7 @@ async def __get_result_from_subflow(
                     result = subflow.state.result(raise_on_failure=True) # type: ignore
     return result
 
-def get_run_id() -> str:
+async def get_run_id() -> str:
     run_id = "unknown"
     try:
         ctx = get_run_context()
@@ -432,7 +432,7 @@ def get_run_id() -> str:
         print("Вне контекста Prefect!")
     return run_id
 
-def create_prefect_run_name(
+async def create_prefect_run_name(
                             type:str,
                             name:str,
                             parent_id:Optional[str]=None,
