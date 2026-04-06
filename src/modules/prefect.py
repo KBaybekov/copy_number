@@ -194,7 +194,7 @@ async def submit_to_prefect(
         case dict():
             prefect_subflow_params.update({'flow_run_name':f"[Subflow] {task_name}"})
             run_args.update(**prefect_subflow_params)
-    return handler.with_options(task_run_name=f"[Task] {task_name}", **prefect_task_params).submit(**run_args)
+    return await handler.with_options(task_run_name=f"[Task] {task_name}", **prefect_task_params).submit(**run_args)
 
 def __collect_from_prefect(
                          tasks: Dict[str, PrefectFuture],
