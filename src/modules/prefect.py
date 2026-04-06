@@ -1,4 +1,4 @@
-from asyncio import sleep as asleep, run as arun
+from asyncio import sleep as asleep, run as arun, iscoroutine
 from pathlib import Path
 from tenacity import retry, stop_after_attempt, wait_fixed, retry_if_result, retry_if_exception_type
 from httpx import RequestError
@@ -313,7 +313,7 @@ async def get_result_from_subflow(
         match created_flow_run:
             case FlowRun():
                 result = await check_flow_run(created_flow_run)
-            case Coroutine():
+            case _ if iscoroutine(created_flow_run):
                 result = await check_flow_run(await created_flow_run)
         return result
                 
