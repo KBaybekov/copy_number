@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from asyncio import create_task as create_atask
+from asyncio import create_task as create_atask, sleep
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple, TypeAlias
 from uuid import UUID
@@ -53,6 +53,7 @@ async def sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
+    await sleep(60)
     print("Initializing logger")
     logger = await get_logger()
     logger.info("Logger initialized")
