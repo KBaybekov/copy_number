@@ -197,12 +197,7 @@ PRE_STAGE_DEPENDIES = {
                       'blank':{
                                    'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
                                    'prefect_subflow_args': None,
-                                   'prefect_task_args': {
-                                                         'name':"cnv_calling_no_subflow_nanopore",
-                                                         'description': 'Поиск CNV ONT без subflow',
-                                                         'timeout_seconds': CNV_CALLING_TIMEOUT,
-                                                         'tags': ['nanopore', 'cnv_calling', 'cpu', 'nextflow', 'long']                                                        
-                                                        },
+                                   'prefect_task_args': None,
                                     'prefect_tag_limit':{
                                                          'nanopore_cnv_calling_cpu': {'cpu':CPUS_CNV_CALLING},
                                                          'nanopore_cnv_calling_gpu': {'gpu':None},
