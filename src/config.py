@@ -199,9 +199,7 @@ PRE_STAGE_DEPENDIES = {
                                    'prefect_subflow_args': None,
                                    'prefect_task_args': None,
                                     'prefect_tag_limit':{
-                                                         'nanopore_cnv_calling_cpu': {'cpu':CPUS_CNV_CALLING},
-                                                         'nanopore_cnv_calling_gpu': {'gpu':None},
-                                                         'nanopore_cnv_calling_ram': {'ram':None},
+                                                         
                                                         },
                                     'handler': 'src/tasks/blank.py:blank',
                                     'arg_factory': 'src/tasks/blank.py:blank_arg_factory'
