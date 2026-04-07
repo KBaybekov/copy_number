@@ -105,7 +105,7 @@ async def sample_workflow(
 
     
     # Получение id запуска
-    flow_id = get_run_id()
+    flow_id = await get_run_id()
     match flow_id:
         case "unknown": # Stop
             logger.error("Контекст потока Prefect недоступен!")

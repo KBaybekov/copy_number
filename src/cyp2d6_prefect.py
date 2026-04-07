@@ -54,7 +54,7 @@ async def main_pipeline(
                     await process.await_for_completion()
 
     logger = await get_logger()
-
+    """
     # Устанавливаем tag-based лимиты одновременной обработки
     tag_limits:Dict[str, Dict[str, int|None]]
     resource_type:str
@@ -65,7 +65,7 @@ async def main_pipeline(
                 for tag in tag_limits.keys():
                     for resource_type, demand in tag_limits[tag].items():
                         create_atask(set_tag_gcl(tag=tag, resource_type=resource_type, demand=demand))
-    
+    """
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
     # 1. Загрузка данных (Ваша логика из excel_handler)
