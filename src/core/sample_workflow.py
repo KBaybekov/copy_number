@@ -7,7 +7,7 @@ from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple,
 from uuid import UUID
 from datetime import datetime
 
-from prefect import flow, task
+from prefect import flow
 from prefect.tasks import Task
 from prefect.futures import PrefectFuture
 from prefect.artifacts import create_markdown_artifact
@@ -42,7 +42,7 @@ def dict_non_empty(d:dict) -> bool:
     """
     return len(d.keys()) > 0
 
-@task(name="Standard Sample Workflow", version="03-2026")
+@flow(name="Standard Sample Workflow", version="03-2026")
 async def sample_workflow(
                           sample: Sample
                          ) -> Sample:
