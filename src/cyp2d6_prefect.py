@@ -7,6 +7,7 @@ from typing import Dict, List, Optional, Any, Coroutine
 
 from prefect import flow, task
 from prefect.artifacts import acreate_markdown_artifact
+from prefect.futures import PrefectFuture
 from prefect_shell import ShellOperation
 
 
@@ -139,7 +140,7 @@ async def main_pipeline(
 
     flow_id = await get_run_id()
     pipeline_name = main_flow_options['name']
-    tasks: List[Coroutine[Any, Any, Sample]] = []
+    tasks: List[PrefectFuture] = []
     for s in samples:
         match s.finished:
             case True:
@@ -149,9 +150,9 @@ async def main_pipeline(
                 tasks.append(task)"""
                 tasks.append(sample_workflow.with_options(
                                                 task_run_name=f"Subflow {s.id}",
-                                                description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]")(s, STAGE_DEPENDENCIES))
+                                                description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]").submit(s, STAGE_DEPENDENCIES))
                 logger.info(f"Sample '{s.id}': started workflow")
-    results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
+    results: List[Sample | BaseException] = [fut.result() for fut in tasks]
     """tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
                                                                              flow_run_name=f"Subflow {s.id}",
