@@ -15,7 +15,7 @@ from prefect.artifacts import create_markdown_artifact
 
 
 from classes.sample import Sample, apply_changes
-from config import STAGE_DEPENDENCIES
+from config import STAGE_DEPENDENCIES as config_stage_deps
 from modules.logger import get_logger
 from modules.prefect import collect_from_prefect, get_run_id, submit_to_prefect
 
@@ -123,6 +123,7 @@ async def sample_workflow(
                     logger.info(f"Запуск обработки образца {sample.id} через Prefect")
                     #print(f"STAGE_DEPENDENCIES:\n{STAGE_DEPENDENCIES}")
                     # Список стадий, которые ещё не начаты
+                    STAGE_DEPENDENCIES = config_stage_deps.copy()
                     stages = list(STAGE_DEPENDENCIES.keys())
                     submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
                     active_tasks: Dict[str, PrefectFuture] = {}

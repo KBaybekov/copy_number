@@ -126,7 +126,7 @@ async def main_pipeline(
 
     flow_id = await get_run_id()
     pipeline_name = main_flow_options['name']
-    tasks: List[Coroutine[Any, Any, Sample]] = []
+    """tasks: List[Coroutine[Any, Any, Sample]] = []
     for s in samples:
         match s.finished:
             case True:
@@ -142,8 +142,8 @@ async def main_pipeline(
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
                                                                             )(s)
                 tasks.append(task)
-                logger.info(f"Sample '{s.id}': started workflow")
-    """tasks: List[Coroutine[Any, Any, Sample]] = [
+                logger.info(f"Sample '{s.id}': started workflow")"""
+    tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
                                                                              flow_run_name=sync_create_prefect_run_name(type='Subflow',
                                                                                                                    name="Sample_Workflow",
@@ -151,7 +151,7 @@ async def main_pipeline(
                                                                                                                    sample_id=s.id
                                                                                                                   ),
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
-                                                                            )(s) for s in samples if not s.finished]"""
+                                                                            )(s) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     
     # Анализ итогов пачки
