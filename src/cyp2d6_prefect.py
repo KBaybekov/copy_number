@@ -39,7 +39,7 @@ async def main_pipeline(
                     ''',
                     'cat /etc/apt/sources.list',
                     'apt-get update',
-                    'apt-get install -y curl openjdk-21-jdk-headless',
+                    'apt-get install -y curl openjdk-21-jdk-headless docker.io',
                     "java --version",
                     'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
                     ]
