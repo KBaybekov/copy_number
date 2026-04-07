@@ -110,7 +110,7 @@ def dict_non_empty(d:dict) -> bool:
     """
     return len(d.keys()) > 0
 
-@flow(name="Standard Sample Workflow", version="03-2026")
+@flow(version="03-2026")
 async def sample_workflow(
                           sample: Sample
                          ) -> Sample:
