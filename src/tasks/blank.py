@@ -1,5 +1,5 @@
 from classes.sample import Sample
-from asyncio import sleep
+from time import sleep
 from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple, TypeAlias
 
 
@@ -22,10 +22,10 @@ async def blank_arg_factory(
     return arg_sets
 
 @task
-async def blank(
+def blank(
                 x: int,
                 **subflow_params
                ) -> None:
-    await sleep(60)
+    sleep(60)
     print(f"x = {x}")
     
