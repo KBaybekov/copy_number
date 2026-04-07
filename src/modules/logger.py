@@ -140,7 +140,7 @@ async def get_logger():
                                             - Полный путь: {log_filepath.resolve().as_posix()}
                                             Файл содержит полные логи уровня DEBUG и выше.
                                         """
-                            ))
+                            )
         print('Created artifact key')
         return logger
     else:
