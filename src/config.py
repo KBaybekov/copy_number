@@ -138,7 +138,8 @@ DEFAULT_TASK_ARGS = {
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
 active_tasks = [
-    'cnv_calling_no_subflow'
+    #'cnv_calling_no_subflow',
+      'blank'
     ]
 PRE_STAGE_DEPENDIES = {
                       'alignment':{
@@ -191,6 +192,23 @@ PRE_STAGE_DEPENDIES = {
                                                         },
                                     'handler': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow',
                                     'arg_factory': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow_arg_factory'
+                                  },
+                      'blank':{
+                                   'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
+                                   'prefect_subflow_args': None,
+                                   'prefect_task_args': {
+                                                         'name':"cnv_calling_no_subflow_nanopore",
+                                                         'description': 'Поиск CNV ONT без subflow',
+                                                         'timeout_seconds': CNV_CALLING_TIMEOUT,
+                                                         'tags': ['nanopore', 'cnv_calling', 'cpu', 'nextflow', 'long']                                                        
+                                                        },
+                                    'prefect_tag_limit':{
+                                                         'nanopore_cnv_calling_cpu': {'cpu':CPUS_CNV_CALLING},
+                                                         'nanopore_cnv_calling_gpu': {'gpu':None},
+                                                         'nanopore_cnv_calling_ram': {'ram':None},
+                                                        },
+                                    'handler': 'src/tasks/blank.py:blank',
+                                    'arg_factory': 'src/tasks/blank.py:blank_arg_factory'
                                   }
                      }
 # Финальный цикл обновления конфигурации стадий
