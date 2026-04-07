@@ -104,8 +104,7 @@ main_flow_options.update({
                                                                    type="Pipeline",
                                                                    name=main_flow_options['name'],
                                                                    timestamp=formatted_now
-                                                                  )),
-                          "task_runner": ConcurrentTaskRunner(max_workers=4)
+                                                                  ))
                          })
 
 # Аргументы по умолчанию для флоу/тасок заданий
