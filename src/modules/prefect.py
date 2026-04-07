@@ -434,7 +434,7 @@ async def create_prefect_run_name(
         case 'Pipeline':
             return f"[Pipeline]:{name}_{timestamp}"
         case 'Task':
-            return f":{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
+            return f"[Task]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
         case _:
             return f"[{type}]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
     
