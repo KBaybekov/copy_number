@@ -34,17 +34,17 @@ RETRY_TAG_ACTIONS = retry(
 )
 
 @RETRY_SENSITIVE_ACTIONS
-def get_prefect_variable(variable_name: str) -> str:
-    return Variable.get(variable_name).__str__()
+async def get_prefect_variable(variable_name: str) -> str:
+    return str(await Variable.aget(variable_name))
 
-def prepare_variable(variable_name: str, data: Dict[str, str] ) -> str | None:
+async def prepare_variable(variable_name: str, data: Dict[str, str] ) -> str | None:
     """
     Подготовка Prefect Variable.
     В передаваемом словаре ключи и значения должны быть строками.   
     """
-    var = get_prefect_variable(variable_name)
+    var = await get_prefect_variable(variable_name)
     if var is not None:
-        var = render_text(var, data)
+        var = await render_text(var, data)
     return var
 
 
@@ -187,7 +187,7 @@ async def submit_to_prefect(
     Возвращаем PrefectFuture, который можно дождаться через await.
     """
     # Добываем имя задания
-    task_name = run_args.pop('task_name')
+    task_name = prefect_task_params.get('task_run_name', 'default_run_name')
     # Если предполагается
     print(f"prefect_task_params:, {prefect_task_params}\nrun args: {run_args}\nprefect_subflow_params: {prefect_subflow_params}")
     match prefect_subflow_params:

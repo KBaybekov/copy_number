@@ -196,7 +196,7 @@ async def sample_workflow(
                                                                     for task_name, args in stage_tasks.items():
                                                                         # Добавляем к аргументам образец и имя задания
                                                                         args.update({'sample':sample})
-                                                                        prefect_task_args.update({'task_name':task_name})
+                                                                        prefect_task_args.update({'task_run_name':task_name})
                                                                         task = await submit_to_prefect(
                                                                                                 prefect_task_params=prefect_task_args,
                                                                                                 prefect_subflow_params=prefect_subflow_args,
