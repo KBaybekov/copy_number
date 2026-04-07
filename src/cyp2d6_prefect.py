@@ -128,7 +128,7 @@ async def main_pipeline(
     pipeline_name = main_flow_options['name']
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
-                                                                             flow_run_name=await create_prefect_run_name(type='Subflow',
+                                                                             task_run_name=await create_prefect_run_name(type='Subflow',
                                                                                                                    name="Sample_Workflow",
                                                                                                                    parent_id=flow_id,
                                                                                                                    sample_id=s.id
