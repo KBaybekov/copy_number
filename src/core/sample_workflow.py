@@ -149,8 +149,8 @@ async def sample_workflow(
                                         case dict() if all(isinstance(k, str) for k in stage_data.keys()): # Go
                                             # Получаем дефолтные аргументы для всех тасок стадии обработки
                                             stage_args_default:dict = stage_data.get('args', {})
-                                            prefect_task_args:Dict[str, Any] = stage_data.get('prefect_task_args', {})
-                                            prefect_subflow_args:Dict[str, Any] = stage_data.get('prefect_subflow_args', {})
+                                            prefect_task_params:Dict[str, Any] = stage_data.get('prefect_task_params', {})
+                                            prefect_subflow_params:Dict[str, Any] = stage_data.get('prefect_subflow_params', {})
                                             arg_factory: ArgFactory|None = stage_data.get('arg_factory')
                                             match arg_factory:
                                                 case None: # Stop
@@ -178,7 +178,7 @@ async def sample_workflow(
                                                                     # Создаём для каждой стадии список, если его ещё не было
                                                                     if stage_name not in sample.task_channels.keys():
                                                                         sample.task_channels[stage_name] = {}
-                                                                    for task_name, args in new_stage_factories.items():
+                                                                    for task_name, run_args in new_stage_factories.items():
                                                                         match (
                                                                                task_name not in sample.task_channels[stage_name],
                                                                                task_name not in submitted_tasks
@@ -189,19 +189,19 @@ async def sample_workflow(
                                                                                 logger.info(f"Задание {task_name} было запущено ранее, не добавляем в список задач стадии")
                                                                             case (True, True): # Go
                                                                                 logger.info(f"Добавление задания {task_name} в очередь на запуск")
-                                                                                sample.task_channels[stage_name].update({task_name:args})
+                                                                                sample.task_channels[stage_name].update({task_name:run_args})
                                                                     #print(f"sample.task_channels: {sample.task_channels}")
                                                                     # Отправляем задачи на обработку
                                                                     stage_tasks = sample.task_channels[stage_name].copy()
-                                                                    for task_name, args in stage_tasks.items():
+                                                                    for task_name, run_args in stage_tasks.items():
                                                                         # Добавляем к аргументам образец и имя задания
-                                                                        args.update({'sample':sample})
-                                                                        prefect_task_args.update({'task_run_name':task_name})
+                                                                        run_args.update({'sample':sample})
+                                                                        prefect_task_params.update({'task_run_name':task_name})
                                                                         task = await submit_to_prefect(
-                                                                                                prefect_task_params=prefect_task_args,
-                                                                                                prefect_subflow_params=prefect_subflow_args,
+                                                                                                prefect_task_params=prefect_task_params,
+                                                                                                prefect_subflow_params=prefect_subflow_params,
                                                                                                 handler=handler,
-                                                                                                run_args=args
+                                                                                                run_args=run_args
                                                                                                 )
                                                                         
                                                                         # Обновляем списки с заданиями
