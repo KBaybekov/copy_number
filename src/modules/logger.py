@@ -11,6 +11,7 @@ from prefect.client.schemas import FlowRun
 from prefect.context import get_run_context, FlowRunContext, TaskRunContext
 from prefect.logging.handlers import APILogHandler
 from prefect.artifacts import acreate_link_artifact, create_link_artifact
+from asyncio import run as arun 
 from datetime import datetime
 from pathlib import Path
 from os import getenv
@@ -126,7 +127,7 @@ async def get_logger():
             
         safe_key = sanitize_artifact_key(raw_key=f"{ctx_name}-logs")
         print(f"Formed artifact key: {safe_key}")
-        create_link_artifact(
+        arun(acreate_link_artifact(
                             key=safe_key,  # общий ключ для всех запусков флоу
                             # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
                             # (в Apache2 прописан алиас к LOG_FOLDER) 
@@ -139,7 +140,7 @@ async def get_logger():
                                             - Полный путь: {log_filepath.resolve().as_posix()}
                                             Файл содержит полные логи уровня DEBUG и выше.
                                         """
-                            )
+                            ))
         print('Created artifact key')
         return logger
     else:
