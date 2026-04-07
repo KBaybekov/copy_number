@@ -25,8 +25,8 @@ async def blank_arg_factory(
 def blank(
                 x: int,
                 **subflow_params
-               ) -> None:
+               ):
     print('start')
     sleep(60)
     print(f"x = {x}")
-    
+    return ({}, True)
