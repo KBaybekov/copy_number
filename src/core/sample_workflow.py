@@ -16,7 +16,7 @@ from prefect.artifacts import create_markdown_artifact
 
 
 from classes.sample import Sample, apply_changes
-from config import STAGE_DEPENDENCIES as config_stage_deps
+#from config import STAGE_DEPENDENCIES as config_stage_deps
 from modules.logger import get_logger
 from modules.prefect import collect_from_prefect, get_run_id, submit_to_prefect
 
@@ -112,7 +112,8 @@ def dict_non_empty(d:dict) -> bool:
 
 @flow(version="03-2026")
 async def sample_workflow(
-                          sample: Sample
+                          sample: Sample,
+                          config_stage_deps:Dict[str, Dict[str, Any]]
                          ) -> Sample:
     """
     Prefect-поток обработки одного образца.

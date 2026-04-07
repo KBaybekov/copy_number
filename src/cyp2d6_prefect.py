@@ -151,7 +151,7 @@ async def main_pipeline(
                                                                                                                    sample_id=s.id
                                                                                                                   ),
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
-                                                                            )(s) for s in samples if not s.finished]
+                                                                            )(s, STAGE_DEPENDENCIES) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     
     # Анализ итогов пачки
