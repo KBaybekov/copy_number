@@ -53,7 +53,9 @@ async def sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
+    print("Initializing logger")
     logger = await get_logger()
+    logger.info("Logger initialized")
 
     async def gather_task_statistics(
                                submitted_tasks: Dict[str, PrefectFuture],
