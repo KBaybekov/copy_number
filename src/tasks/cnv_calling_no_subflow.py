@@ -53,7 +53,7 @@ async def cnv_calling_no_subflow_arg_factory(
                 basecalling_model,
                 not any(bam_id in s.name for s in sample.cnv)
                ]):
-            task_name =await create_prefect_run_name(
+            task_name = await create_prefect_run_name(
                                                 type='Task',
                                                 name=f"CNV Calling: batch {bam_id}",
                                                 parent_id=parent_flow_id,

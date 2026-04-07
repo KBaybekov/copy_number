@@ -203,6 +203,27 @@ async def collect_from_prefect(
     """
     Асинхронно собирает результаты PrefectFuture, возвращая словарь {имя_задачи: результат}.
     """
+    results = {}
+    futures = list(tasks.values())
+    try:
+        for future in as_completed(futures, timeout=timeout):
+            result = future.result()
+            task_name = next((k for k, v in tasks.items() if v == future), 'unknown_task')
+            results[task_name] = result
+    except TimeoutError:
+        # По таймауту просто возвращаем то, что успели собрать
+        pass
+
+    return results
+
+
+async def _collect_from_prefect(
+    tasks: Dict[str, PrefectFuture],
+    timeout: float
+) -> Dict[str, Any]:
+    """
+    Асинхронно собирает результаты PrefectFuture, возвращая словарь {имя_задачи: результат}.
+    """
     import asyncio
     results = {}
     # Оставляем только PrefectFuture (если есть другие типы – не обрабатываем)
