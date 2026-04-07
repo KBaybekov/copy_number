@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 from asyncio import create_task as create_atask
+from importlib.util import module_from_spec, spec_from_file_location
 from pathlib import Path
 from random import randint
 from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple, TypeAlias
@@ -36,6 +37,72 @@ loop_duration = 10
 - обновлённый Sample проходит через начальный цикл проверки условий для всех стадий
 - таким образом, мы не пропустим инициализацию заданий, не запускаемых другими заданиями (например, использующих объединённый результат выполнения нескольких задач)
 """
+
+def load_callable(spec: str) -> Callable:
+    """
+    Загружает Callable объект из файла по строке вида "modules/task1.py:task()"
+    
+    Args:
+        spec: Строка с путём к файлу и именем вызываемого объекта.
+              Примеры:
+                "modules/task1.py:task"
+                "utils/helpers.py:process()"
+    
+    Returns:
+        Callable объект (функция, класс или любой объект с __call__)
+    
+    Raises:
+        ValueError: Если формат строки неверный или объект не является callable.
+        FileNotFoundError: Если указанный файл не существует.
+        ImportError: Если не удалось загрузить модуль.
+        AttributeError: Если в модуле нет указанного атрибута.
+    """
+    # 1. Проверяем валидность переданной строки
+    match spec:
+        case _ if ":" in spec:
+            file_path_str, callable_name = spec.split(':', 1)
+            if not callable_name:
+                raise ValueError(f"Не указано имя вызываемого объекта в '{spec}'")
+            # 2. Удаляем возможные скобки в конце (например "task()" -> "task")
+            if callable_name.endswith('()'):
+                callable_name = callable_name[:-2]
+            # 3. Преобразуем относительный путь в абсолютный (от текущей рабочей директории)
+            file_path = Path(file_path_str).resolve()
+            if not file_path.exists():
+                raise FileNotFoundError(f"Файл не найден: {file_path}")
+            # 4. Генерируем уникальное имя модуля (на основе пути)
+            module_name = file_path.stem
+            # Добавляем суффикс, чтобы избежать конфликтов имён
+            unique_name = f"dynamic_{module_name}_{hash(str(file_path))}"
+            
+            # 5. Загружаем модуль из файла
+            spec_loader = spec_from_file_location(unique_name, file_path)
+            match spec_loader:
+                case None:
+                    raise ImportError(f"Не удалось создать спецификацию для '{file_path}'")
+                case _:
+                    module = module_from_spec(spec_loader)
+            match spec_loader.loader:
+                case None:
+                    raise ImportError(f"Не удалось создать спецификацию для '{file_path}': loader is None")
+                case _:
+                    try:
+                        spec_loader.loader.exec_module(module)
+                    except Exception as e:
+                        raise ImportError(f"Ошибка при выполнении модуля {file_path}: {e}")
+                    # 6. Получаем атрибут
+                    if not hasattr(module, callable_name):
+                        raise AttributeError(f"Модуль {file_path} не содержит атрибут '{callable_name}'")
+                    
+                    callable_obj = getattr(module, callable_name)
+                    
+                    # 7. Проверяем, что объект вызываемый
+                    if not callable(callable_obj):
+                        raise ValueError(f"Объект '{callable_name}' в {file_path} не является вызываемым")
+                    
+                    return callable_obj            
+        case _:
+            raise ValueError(f"Неверный формат: ожидается 'путь:имя', получено '{spec}'")
 
 def dict_non_empty(d:dict) -> bool:
     """
@@ -124,6 +191,9 @@ async def sample_workflow(
                     #print(f"STAGE_DEPENDENCIES:\n{STAGE_DEPENDENCIES}")
                     # Список стадий, которые ещё не начаты
                     STAGE_DEPENDENCIES = config_stage_deps.copy()
+                    for stage_data in STAGE_DEPENDENCIES.values():
+                        stage_data['handler'] = load_callable(stage_data['handler'])
+                        stage_data['arg_factory'] = load_callable(stage_data['arg_factory'])
                     stages = list(STAGE_DEPENDENCIES.keys())
                     submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
                     active_tasks: Dict[str, PrefectFuture] = {}

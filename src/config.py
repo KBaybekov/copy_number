@@ -155,8 +155,8 @@ PRE_STAGE_DEPENDIES = {
                                                          'nanopore_alignment_gpu': {'gpu':None},
                                                          'nanopore_alignment_ram': {'ram':None},
                                                         },
-                                    'handler': alignment,
-                                    'arg_factory': alignment_arg_factory
+                                    'handler': 'src/tasks/alignment.py:alignment',
+                                    'arg_factory': 'src/tasks/alignment.py:alignment_arg_factory'
                                   },
                       'cnv_calling':{
                                    'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
@@ -172,8 +172,8 @@ PRE_STAGE_DEPENDIES = {
                                                          'nanopore_cnv_calling_gpu': {'gpu':None},
                                                          'nanopore_cnv_calling_ram': {'ram':None},
                                                         },
-                                    'handler': cnv_calling,
-                                    'arg_factory': cnv_calling_arg_factory
+                                    'handler': 'src/tasks/cnv_calling.py:cnv_calling',
+                                    'arg_factory': 'src/tasks/cnv_calling.py:cnv_calling_arg_factory'
                                   },
                       'cnv_calling_no_subflow':{
                                    'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
@@ -189,8 +189,8 @@ PRE_STAGE_DEPENDIES = {
                                                          'nanopore_cnv_calling_gpu': {'gpu':None},
                                                          'nanopore_cnv_calling_ram': {'ram':None},
                                                         },
-                                    'handler': cnv_calling_no_subflow,
-                                    'arg_factory': cnv_calling_no_subflow_arg_factory
+                                    'handler': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow',
+                                    'arg_factory': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow_arg_factory'
                                   }
                      }
 # Финальный цикл обновления конфигурации стадий
