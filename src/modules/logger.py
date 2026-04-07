@@ -97,8 +97,10 @@ async def get_logger():
         real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
         print('Got real logger')
         # 6. Защита от дублирования файлового обработчика
+        handlers:list[logging.Handler] = real_logger.handlers # type: ignore
+        print(f"Handlers: {handlers}")
         if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
-                            for h in real_logger.handlers): # type: ignore
+                            for h in handlers):
             # Создаём файл с заголовком, если его нет
             if not log_filepath.exists():
                 log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
@@ -123,6 +125,7 @@ async def get_logger():
         print(logger.logger.handlers)"""
             
         safe_key = sanitize_artifact_key(raw_key=f"{ctx_name}-logs")
+        print(f"Formed artifact key: {safe_key}")
         await acreate_link_artifact(
                             key=safe_key,  # общий ключ для всех запусков флоу
                             # преобразуем путь в file:// URL, убираем всё, кроме род. папки и имени файла
