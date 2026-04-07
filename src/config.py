@@ -115,7 +115,7 @@ DEFAULT_SUBFLOW_ARGS = {
                        }
 
 DEFAULT_TASK_ARGS = {
-                     'cache_policy': NotSet(),
+                     'cache_policy': None,
                      'cache_key_fn': None,
                      'cache_expiration': None,
                      'cache_result_in_memory':None,
