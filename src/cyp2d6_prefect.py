@@ -23,13 +23,13 @@ async def run_subflow_task(
                            parent_flow_id: str,
                            sample: Sample):
     # Вызов subflow внутри задачи гарантирует, что он будет записан как дочерний
-    return arun(
-                sample_workflow.with_options(flow_run_name=await create_prefect_run_name(type='Subflow',
+     subflow = sample_workflow.with_options(flow_run_name=await create_prefect_run_name(type='Subflow',
                                                                                         name="Sample_Workflow",
                                                                                         parent_id=parent_flow_id,
                                                                                         sample_id=sample.id
                                                                                         )
-                                                                            )(sample))
+                                                                            )(sample)
+     return subflow
 
 @flow(**main_flow_options)
 async def main_pipeline(
@@ -144,7 +144,7 @@ async def main_pipeline(
             case True:
                 continue
             case False:
-                task = run_subflow_task(parent_flow_id=flow_id, sample=s)
+                task = await run_subflow_task(parent_flow_id=flow_id, sample=s)
                 tasks.append(task)
                 logger.info(f"Sample '{s.id}': started workflow")
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
