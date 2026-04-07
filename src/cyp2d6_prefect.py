@@ -147,14 +147,8 @@ async def main_pipeline(
                 logger.info(f"Sample '{s.id}': started workflow")"""
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
-                                                                             flow_run_name=sync_create_prefect_run_name(type='Subflow',
-                                                                                                                   name="Sample_Workflow",
-                                                                                                                   parent_id=flow_id,
-                                                                                                                   sample_id=s.id
-                                                                                                                  ),
-                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]",
-                                                                             task_runner=ConcurrentTaskRunner()
-                                                                            )(s, STAGE_DEPENDENCIES) for s in samples if not s.finished]
+                                                                             flow_run_name=f"Subflow {s.id}",
+                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"                                                                            )(s, STAGE_DEPENDENCIES) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     
     # Анализ итогов пачки
@@ -162,3 +156,8 @@ async def main_pipeline(
     error_count = len(results) - success_count
     logger.info(f"Из {len(results)} образцов {success_count} успешны, {error_count} - нет")
     return None
+"""flow_run_name=sync_create_prefect_run_name(type='Subflow',
+                                                                                                                   name="Sample_Workflow",
+                                                                                                                   parent_id=flow_id,
+                                                                                                                   sample_id=s.id
+                                                                                                                  )"""
