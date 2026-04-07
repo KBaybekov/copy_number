@@ -1,15 +1,13 @@
 # -*- coding: utf-8 -*-
 from __future__ import annotations
 
-from asyncio import create_task as create_atask, gather as agather, sleep
+from asyncio import create_task as create_atask, gather as agather, run as arun
 from pathlib import Path
 from typing import Dict, List, Optional, Any, Coroutine
 
-from prefect import flow
+from prefect import flow, task
 from prefect.artifacts import acreate_markdown_artifact
 from prefect_shell import ShellOperation
-from prefect.task_runners import ThreadPoolTaskRunner
-from prefect.task_runners import ConcurrentTaskRunner
 
 
 # Импорт кастомных модулей
@@ -20,6 +18,18 @@ from modules.logger import get_logger
 from modules.prefect import create_prefect_run_name, get_run_id, set_tag_gcl
 from classes.sample import Sample
 
+@task
+async def run_subflow_task(
+                           parent_flow_id: str,
+                           sample: Sample):
+    # Вызов subflow внутри задачи гарантирует, что он будет записан как дочерний
+    return arun(
+                sample_workflow.with_options(flow_run_name=await create_prefect_run_name(type='Subflow',
+                                                                                        name="Sample_Workflow",
+                                                                                        parent_id=parent_flow_id,
+                                                                                        sample_id=sample.id
+                                                                                        )
+                                                                            )(sample))
 
 @flow(**main_flow_options)
 async def main_pipeline(
@@ -128,29 +138,23 @@ async def main_pipeline(
 
     flow_id = await get_run_id()
     pipeline_name = main_flow_options['name']
-    """tasks: List[Coroutine[Any, Any, Sample]] = []
+    tasks: List[Coroutine[Any, Any, Sample]] = []
     for s in samples:
         match s.finished:
             case True:
                 continue
             case False:
-                await sleep(0.25)
-                task = sample_workflow.with_options(
-                                                                             flow_run_name=sync_create_prefect_run_name(type='Subflow',
-                                                                                                                   name="Sample_Workflow",
-                                                                                                                   parent_id=flow_id,
-                                                                                                                   sample_id=s.id
-                                                                                                                  ),
-                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
-                                                                            )(s)
+                task = run_subflow_task(parent_flow_id=flow_id, sample=s)
                 tasks.append(task)
-                logger.info(f"Sample '{s.id}': started workflow")"""
-    tasks: List[Coroutine[Any, Any, Sample]] = [
+                logger.info(f"Sample '{s.id}': started workflow")
+    results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
+    """tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
                                                                              flow_run_name=f"Subflow {s.id}",
                                                                              description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"                                                                            )(s, STAGE_DEPENDENCIES) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
-    
+    """
+
     # Анализ итогов пачки
     success_count = sum(1 for r in results if isinstance(r, Sample) and r.success)
     error_count = len(results) - success_count
