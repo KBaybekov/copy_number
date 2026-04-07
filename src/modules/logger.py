@@ -54,16 +54,20 @@ class TsvFormatter(logging.Formatter):
         return "\t".join(parts)
 
 async def get_logger():
+    
     logger = get_run_logger()  # адаптер Prefect
+    print("Initialized Prefect logger")
     
     # 1. Разрешаем логгеру флоу глотать DEBUG
     logger.setLevel(logging.DEBUG)
+    print("Set level")
     
     # 3. Проверяем, что мы внутри флоу
     ctx_name = ""
     run_id = ""
     try:
         ctx = get_run_context()
+        print("Got run context")
     except RuntimeError:
         print("Логгер вызван вне контекста объекта Prefect!")
         raise
@@ -73,11 +77,13 @@ async def get_logger():
                 case FlowRun():
                     run_id = ctx.flow_run.id
                     ctx_name =  ctx.flow_run.name
+                    print(f"Got context:\n\tctx_name: '{ctx_name}'\n\trun_id: '{run_id}'")
                 case None:
                     print("FlowRunContext есть, но flow_run = None")
         case TaskRunContext():
             run_id = ctx.task_run.id
             ctx_name =  ctx.task_run.name
+            print(f"Got context:\n\tctx_name: '{ctx_name}'\n\trun_id: '{run_id}'")
 
     if all([ctx_name, run_id]):
         # 4. Формируем путь к файлу
@@ -85,13 +91,14 @@ async def get_logger():
         log_dir = LOG_FOLDER / now.strftime("%d_%m_%Y")
         log_dir.mkdir(parents=True, exist_ok=True)
         log_filepath = log_dir / f"{ctx_name}_{now.strftime('%H:%M:%S')}.tsv".replace(" ", "_").replace('[', '').replace(']', '')
-    
+        print('Formed log files+dirs')
+
         # 5. Получаем реальный логгер из адаптера (чтобы добавить обработчик)
         real_logger = logger.logger if hasattr(logger, 'logger') else logger # type: ignore
-
+        print('Got real logger')
         # 6. Защита от дублирования файлового обработчика
         if not any(getattr(h, 'baseFilename', None) == str(log_filepath.absolute()) 
-                for h in real_logger.handlers): # type: ignore
+                            for h in real_logger.handlers): # type: ignore
             # Создаём файл с заголовком, если его нет
             if not log_filepath.exists():
                 log_filepath.write_text("\t".join(TSV_COLUMNS) + "\n", encoding='utf-8')
