@@ -148,9 +148,11 @@ async def main_pipeline(
             case False:
                 """task = await run_subflow_task(parent_flow_id=flow_id, sample=s)
                 tasks.append(task)"""
+                stage_deps = STAGE_DEPENDENCIES.copy()
                 tasks.append(sample_workflow.with_options(
                                                 task_run_name=f"Subflow {s.id}",
-                                                description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]").submit(s, STAGE_DEPENDENCIES))
+                                                description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]")
+                                                .submit(s, stage_deps))
                 logger.info(f"Sample '{s.id}': started workflow")
     results: List[Sample | BaseException] = [fut.result() for fut in tasks]
     """tasks: List[Coroutine[Any, Any, Sample]] = [
