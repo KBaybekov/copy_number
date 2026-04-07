@@ -286,6 +286,7 @@ async def sample_workflow(
                                                                         for task_dict in [submitted_tasks, active_tasks]:
                                                                             task_dict.update({task_name:task})
                                                                     del stage_tasks
+                                                                    print(f"active_tasks: {active_tasks.keys()}")
                         match dict_non_empty(active_tasks):
                             # Если ничего не запущено и условий для запуска новых нет — выходим
                             case False:
