@@ -145,8 +145,11 @@ async def main_pipeline(
             case True:
                 continue
             case False:
-                task = await run_subflow_task(parent_flow_id=flow_id, sample=s)
-                tasks.append(task)
+                """task = await run_subflow_task(parent_flow_id=flow_id, sample=s)
+                tasks.append(task)"""
+                tasks.append(sample_workflow.with_options(
+                                                task_run_name=f"Subflow {s.id}",
+                                                description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]")(s, STAGE_DEPENDENCIES))
                 logger.info(f"Sample '{s.id}': started workflow")
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     """tasks: List[Coroutine[Any, Any, Sample]] = [

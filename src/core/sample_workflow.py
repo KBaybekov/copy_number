@@ -9,7 +9,7 @@ from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple,
 from uuid import UUID
 from datetime import datetime
 
-from prefect import flow
+from prefect import flow, task
 from prefect.tasks import Task
 from prefect.futures import PrefectFuture
 from prefect.artifacts import create_markdown_artifact
@@ -341,7 +341,7 @@ async def _sample_workflow(
                     return sample
 
 
-@flow(version="03-2026")
+@task(version="03-2026")
 async def sample_workflow(
                           sample: Sample,
                           stage_deps:Dict[str, Dict[str, Any]]

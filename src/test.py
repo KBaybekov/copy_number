@@ -32,7 +32,7 @@ async def subflow(k:str):
         
 
 
-@flow(task_runner=T)
+@flow
 async def test_main():
     print("Start main ppl")
     ks = ['f', 'g', 'h']
