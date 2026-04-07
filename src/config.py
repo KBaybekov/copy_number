@@ -138,8 +138,8 @@ DEFAULT_TASK_ARGS = {}
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
 active_tasks = [
-    #'cnv_calling_no_subflow',
-      'blank'
+    'cnv_calling'
+     # 'blank'
     ]
 PRE_STAGE_DEPENDIES = {
                       'alignment':{

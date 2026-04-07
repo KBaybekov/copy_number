@@ -19,7 +19,7 @@ from modules.logger import get_logger
 from modules.prefect import create_prefect_run_name, get_run_id, set_tag_gcl
 from classes.sample import Sample
 
-@task
+"""@task
 async def run_subflow_task(
                            parent_flow_id: str,
                            sample: Sample):
@@ -31,7 +31,7 @@ async def run_subflow_task(
                                                                                         )
                                                                             )(sample,
                                                                               STAGE_DEPENDENCIES)
-     return subflow
+     return subflow"""
 
 @flow(**main_flow_options)
 async def main_pipeline(
@@ -68,7 +68,7 @@ async def main_pipeline(
                     await process.await_for_completion()"""
 
     logger = await get_logger()
-    """
+
     # Устанавливаем tag-based лимиты одновременной обработки
     tag_limits:Dict[str, Dict[str, int|None]]
     resource_type:str
@@ -79,7 +79,7 @@ async def main_pipeline(
                 for tag in tag_limits.keys():
                     for resource_type, demand in tag_limits[tag].items():
                         create_atask(set_tag_gcl(tag=tag, resource_type=resource_type, demand=demand))
-    """
+
     logger.info(f"Запуск пайплайна. Таблица: {table_input}")
 
     # 1. Загрузка данных (Ваша логика из excel_handler)
