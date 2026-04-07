@@ -274,7 +274,8 @@ async def sample_workflow(
                                                                         prefect_task_params.update({'task_run_name':task_name})
                                                                         task = submit_to_prefect(
                                                                                                 prefect_task_params=prefect_task_params,
-                                                                                                prefect_subflow_params=prefect_subflow_params,
+                                                                                                prefect_subflow_params=None,
+                                                                                                #prefect_subflow_params=prefect_subflow_params,
                                                                                                 handler=handler,
                                                                                                 run_args=run_args
                                                                                                 )
