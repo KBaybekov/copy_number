@@ -174,7 +174,7 @@ async def set_tag_gcl(tag:str, resource_type:str, demand:int | None) -> None:
             await create_or_update()
     return None
 
-async def submit_to_prefect(
+def submit_to_prefect(
                       prefect_task_params: Dict[str, Any],
                       run_args: Dict[str, Any],
                       handler: Task,
@@ -194,7 +194,7 @@ async def submit_to_prefect(
         case dict():
             prefect_subflow_params.update({'flow_run_name':f"[Subflow] {task_name}"})
             run_args.update(**prefect_subflow_params)
-    return await handler.with_options(**prefect_task_params).submit(**run_args)
+    return handler.with_options(**prefect_task_params).submit(**run_args)
 
 async def collect_from_prefect(
     tasks: Dict[str, PrefectFuture],
