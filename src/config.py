@@ -105,7 +105,7 @@ main_flow_options.update({
                                                                    name=main_flow_options['name'],
                                                                    timestamp=formatted_now
                                                                   )),
-                          "task_runner": ThreadPoolTaskRunner()
+                          "task_runner": ThreadPoolTaskRunner(max_workers=4)
                          })
 
 # Аргументы по умолчанию для флоу/тасок заданий
