@@ -100,11 +100,35 @@ async def main_pipeline(
     # Порождение независимых потоков (Subflows) для каждого сэмпла   
     logger.info(f"Инициализация асинхронных потоков для {len(samples)} образцов...")
 
+    def sync_create_prefect_run_name(
+                            type:str,
+                            name:str,
+                            parent_id:Optional[str]=None,
+                            sample_id: Optional[str]=None,
+                            timestamp: Optional[str]=None
+                           ) -> str:
+        """
+        Создаёт строку имени запуска Prefect вида "[Pipeline]:{name}_{timestamp}"/[Subflow|Task]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_flow_id}
+        Args:
+            type: Pipeline|Subflow|Task
+            name: Произвольное имя
+            parent_id: UUID родительского объекта в виде строки
+            sample_id: id образца
+            timestamp: строковая временная отметка
+        """
+        match type:
+            case 'Pipeline':
+                return f"[Pipeline]:{name}_{timestamp}"
+            case 'Task':
+                return f"[Task]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
+            case _:
+                return f"[{type}]:{name}-[Sample]:{sample_id}-[Parent_id]:{parent_id}"
+
     flow_id = await get_run_id()
     pipeline_name = main_flow_options['name']
     tasks: List[Coroutine[Any, Any, Sample]] = [
                                                 sample_workflow.with_options(
-                                                                             flow_run_name=await create_prefect_run_name(type='Subflow',
+                                                                             flow_run_name=sync_create_prefect_run_name(type='Subflow',
                                                                                                                    name="Sample_Workflow",
                                                                                                                    parent_id=flow_id,
                                                                                                                    sample_id=s.id
