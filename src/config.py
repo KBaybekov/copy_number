@@ -109,12 +109,12 @@ main_flow_options.update({
 
 # Аргументы по умолчанию для флоу/тасок заданий
 DEFAULT_SUBFLOW_ARGS = {
-                        'as_subflow': True,
+                        'as_subflow': False,
                         'tags':['nanopore', 'cyp2d6_cnv']
                        }
 
-DEFAULT_TASK_ARGS = {}
-"""DEFAULT_TASK_ARGS = {
+#DEFAULT_TASK_ARGS = {}
+DEFAULT_TASK_ARGS = {
                      'cache_policy': None,
                      'cache_key_fn': None,
                      'cache_expiration': None,
@@ -133,7 +133,7 @@ DEFAULT_TASK_ARGS = {}
                      'refresh_cache': None,
                      'timeout_seconds':None,
                      'viz_return_value': None
-                    }"""
+                    }
 
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
