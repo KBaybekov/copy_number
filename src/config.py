@@ -109,7 +109,7 @@ main_flow_options.update({
 
 # Аргументы по умолчанию для флоу/тасок заданий
 DEFAULT_SUBFLOW_ARGS = {
-                        'as_subflow': False,
+                        'as_subflow': True,
                         'tags':['nanopore', 'cyp2d6_cnv']
                        }
 
@@ -138,7 +138,7 @@ DEFAULT_TASK_ARGS = {
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
 active_tasks = [
-    'cnv_calling'
+    'cnv_calling_no_subflow'
      # 'blank'
     ]
 PRE_STAGE_DEPENDIES = {
