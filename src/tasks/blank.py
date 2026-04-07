@@ -26,6 +26,7 @@ def blank(
                 x: int,
                 **subflow_params
                ) -> None:
+    print('start')
     sleep(60)
     print(f"x = {x}")
     
