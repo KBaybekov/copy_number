@@ -16,7 +16,7 @@ from prefect.artifacts import create_markdown_artifact
 
 
 from classes.sample import Sample, apply_changes
-from config import STAGE_DEPENDENCIES as config_stage_deps
+#from config import STAGE_DEPENDENCIES as config_stage_deps
 from modules.prefect import collect_from_prefect, get_run_id, submit_to_prefect
 
 # Функция принимает Sample и произвольные именованные аргументы (**kwargs)
@@ -344,7 +344,7 @@ async def _sample_workflow(
 @flow(version="03-2026")
 async def sample_workflow(
                           sample: Sample,
-
+                          stage_deps:Dict[str, Dict[str, Any]]
                          ) -> Sample:
     """
     Prefect-поток обработки одного образца.
@@ -424,11 +424,10 @@ async def sample_workflow(
                     logger.info(f"Запуск обработки образца {sample.id} через Prefect")
                     #print(f"STAGE_DEPENDENCIES:\n{STAGE_DEPENDENCIES}")
                     # Список стадий, которые ещё не начаты
-                    STAGE_DEPENDENCIES = config_stage_deps.copy()
-                    for stage_data in STAGE_DEPENDENCIES.values():
+                    for stage_data in stage_deps.values():
                         stage_data['handler'] = load_callable(stage_data['handler'])
                         stage_data['arg_factory'] = load_callable(stage_data['arg_factory'])
-                    stages = list(STAGE_DEPENDENCIES.keys())
+                    stages = list(stage_deps.keys())
                     submitted_tasks: Dict[str, PrefectFuture|Coroutine] = {}
                     active_tasks: Dict[str, PrefectFuture] = {}
                     finished_tasks: List[str] = []
@@ -450,7 +449,7 @@ async def sample_workflow(
                             case True: # Go
                                 for stage_name in stages:
                                     print(f"Stage: {stage_name}")
-                                    stage_data:Dict[str, Any]|None = STAGE_DEPENDENCIES.get(stage_name)
+                                    stage_data:Dict[str, Any]|None = stage_deps.get(stage_name)
                                     match stage_data:
                                         case None: # Stop
                                             logger.error(f"Отсутствуют данные для стадии обработки: {stage_name}")

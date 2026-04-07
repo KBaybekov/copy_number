@@ -28,7 +28,8 @@ async def run_subflow_task(
                                                                                         parent_id=parent_flow_id,
                                                                                         sample_id=sample.id
                                                                                         )
-                                                                            )(sample)
+                                                                            )(sample,
+                                                                              STAGE_DEPENDENCIES)
      return subflow
 
 @flow(**main_flow_options)
