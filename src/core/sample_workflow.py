@@ -17,7 +17,6 @@ from prefect.artifacts import create_markdown_artifact
 
 from classes.sample import Sample, apply_changes
 #from config import STAGE_DEPENDENCIES as config_stage_deps
-from modules.logger import get_logger
 from modules.prefect import collect_from_prefect, get_run_id, submit_to_prefect
 
 # Функция принимает Sample и произвольные именованные аргументы (**kwargs)
@@ -354,6 +353,8 @@ async def _sample_workflow(
       - Условиями запуска (STAGE_CONDITIONS)
       - Обработкой ошибок и отменой при падении
     """
+    from modules.logger import get_logger
+
     print("Initializing logger")
     logger = await get_logger()
     logger.info("Logger initialized")
