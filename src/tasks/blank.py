@@ -1,4 +1,5 @@
 from classes.sample import Sample
+from asyncio import sleep
 from typing import Any, Awaitable, Callable, Dict, List, cast, Coroutine, Tuple, TypeAlias
 
 
@@ -7,6 +8,7 @@ from prefect import task
 
 async def blank_arg_factory(
                           sample: Sample,
+                          flow_id: str,
                           **kwargs
                          ) -> Dict[str, Dict[str, Any]]:
     """
@@ -24,5 +26,6 @@ async def blank(
                 x: int,
                 **subflow_params
                ) -> None:
+    await sleep(60)
     print(f"x = {x}")
     
