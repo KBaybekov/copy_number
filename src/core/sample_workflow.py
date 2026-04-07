@@ -195,7 +195,8 @@ async def sample_workflow(
                                                                     stage_tasks = sample.task_channels[stage_name].copy()
                                                                     for task_name, args in stage_tasks.items():
                                                                         # Добавляем к аргументам образец и имя задания
-                                                                        args.update({'sample':sample, 'task_name':task_name})
+                                                                        args.update({'sample':sample})
+                                                                        prefect_task_args.update({'task_name':task_name})
                                                                         task = await submit_to_prefect(
                                                                                                 prefect_task_params=prefect_task_args,
                                                                                                 prefect_subflow_params=prefect_subflow_args,
