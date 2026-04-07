@@ -8,6 +8,8 @@ from typing import Dict, List, Optional, Any, Coroutine
 from prefect import flow
 from prefect.artifacts import acreate_markdown_artifact
 from prefect_shell import ShellOperation
+from prefect.task_runners import ThreadPoolTaskRunner
+#from prefect.task_runners import ConcurrentTaskRunner
 
 
 # Импорт кастомных модулей
@@ -150,7 +152,8 @@ async def main_pipeline(
                                                                                                                    parent_id=flow_id,
                                                                                                                    sample_id=s.id
                                                                                                                   ),
-                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]"
+                                                                             description=f"Workflow for sample [{s.id}] in pipeline [{pipeline_name}]",
+                                                                             task_runner=ThreadPoolTaskRunner()
                                                                             )(s, STAGE_DEPENDENCIES) for s in samples if not s.finished]
     results: List[Sample | BaseException] = await agather(*tasks, return_exceptions=True)
     
