@@ -116,7 +116,7 @@ async def star_alleles(
                 work_dir = main_work_d / vcf_id
                 res_dir = main_res_d / vcf_id
                 for d in [work_dir, res_dir]:
-                    d.mkdir(mode=755, exist_ok=True, parents=True)
+                    d.mkdir(mode=777, exist_ok=True, parents=True)
                 
                 print("Starting Stargazer...")
                 # Формируем shell-команду
