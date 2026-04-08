@@ -92,7 +92,7 @@ async def star_alleles(
     fail_reason = ""    
 
     try:
-        stargazer_d = "/mnt/cephfs8_rw/nanopore2/service/programms/stargazer-grc38-2.0.3/stargazer/"
+        stargazer_run_c = "python3 /mnt/cephfs8_rw/nanopore2/service/programms/stargazer-grc38-2.0.3/stargazer"
         stage_name = "star_alleles"
 
         # Сохраняем исходное состояние экземпляра
@@ -120,14 +120,14 @@ async def star_alleles(
                 
                 print("Starting Stargazer...")
                 # Формируем shell-команду
-                cmd = [f"python3 {stargazer_d} --vcf-file {vcf}  --target-gene {gene} --genome {genome} --data-type {data_type} --control-gene {control_gene} --output-dir {res_dir}"]
+                cmd = [f"{stargazer_run_c} --vcf-file {vcf}  --target-gene {gene} --genome {genome} --data-type {data_type} --control-gene {control_gene} --output-dir {res_dir}"]
                 # Добавляем подготовительные и постпроцессинговые команды
                 shell_cmds:List[str] = cmd
                 
                 # Запуск пайплайна Nextflow и получение результата
                 async with ShellOperation(
                                         commands=shell_cmds,
-                                        working_dir=res_dir,
+                                        working_dir=work_dir,
                                         stream_output=True
                                         ) as shell_op:
                     # Запускаем процесс
