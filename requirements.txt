@@ -1,6 +1,9 @@
 biopython
+cyvcf2
 pandas
 openpyxl
 tenacity
 prefect_shell
 pyyaml
+scipy
+matplotlib

@@ -1,4 +1,4 @@
-from csv import DictReader, DictWriter
+from csv import DictReader, DictWriter, reader as csv_reader
 from modules.logger import get_logger
 from . import is_file_exists_n_not_empty
 from pathlib import Path
@@ -73,43 +73,32 @@ async def write_sample_data(sample_data:dict) -> None:
     else: 
         logger.error(f"Unknown id for data: {sample_data}")
     return None
-'''
-def form_nxf_tsv(data_dict: dict|List[dict], filepath: Path) -> Optional[Path]:
+
+
+def extract_value_from_tsv(
+                           file_path:Path,
+                           row_index,
+                           col_index,
+                           has_header=True
+                          ) -> str:
     """
-    Создает TSV файл из словаря. 
-    Ключи словаря становятся заголовками, значения — строкой.
-    Если данных несколько, ожидается список словарей.
+    Извлекает значение из TSV файла.
+    :param file_path: путь к TSV
+    :param row_index: номер строки (0-based, если has_header=False)
+    :param col_index: номер колонки (0-based)
+    :param has_header: если True, то первая строка считается заголовком, и row_index отсчитывается после него
+    :return: значение в указанной ячейке
     """
-    logger = get_logger()
-
-    # Гарантируем, что работаем со списком (даже если передан один объект)
-    if isinstance(data_dict, dict):
-        data = [data_dict]
-    else:
-        data = data_dict
-
-    if not data:
-        raise ValueError("Данные для записи пусты")
-
-    # Извлекаем заголовки из ключей первого словаря
-    fieldnames = data[0].keys()
-
-    # Создаем папку, если ее нет
-    if not filepath.parent.exists():
-        filepath.parent.mkdir(parents=True, exist_ok=True)
-        logger.debug(f"Создана папка для TSV: {filepath.parent}")
-
-    # Записываем данные в файл
-    with open(filepath, mode='w', newline='', encoding='utf-8') as tsvfile:
-        writer = DictWriter(tsvfile, fieldnames=fieldnames, delimiter='\t')
-        
-        writer.writeheader()
-        writer.writerows(data)
-    
-    # проверяем, что файл создан, иначе возвращаем None
-    if is_file_exists_n_not_empty(filepath):
-        return filepath
-    else:
-        logger.error(f"Файл не создан: {filepath}")
-        return None
-'''
+    with open(file_path, 'r', newline='', encoding='utf-8') as f:
+        reader = csv_reader(f, delimiter='\t')
+        # Пропускаем заголовок, если нужно
+        if has_header:
+            next(reader)
+        # Добираемся до нужной строки
+        for i, row in enumerate(reader):
+            if i == row_index:
+                if col_index < len(row):
+                    return row[col_index]
+                else:
+                    raise IndexError(f"Колонки с индексом {col_index} нет в строке {row_index}")
+        raise IndexError(f"Строки с индексом {row_index} нет в файле")

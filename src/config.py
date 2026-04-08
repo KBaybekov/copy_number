@@ -193,6 +193,42 @@ PRE_STAGE_DEPENDIES = {
                                     'handler': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow',
                                     'arg_factory': 'src/tasks/cnv_calling_no_subflow.py:cnv_calling_no_subflow_arg_factory'
                                   },
+                      'phased_cnv_no_subflow':{
+                                   'args':{
+                                           'chr':'chr22',
+                                           'pos_start':42126499,
+                                           'pos_end':42130865,
+                                           'vicinity': 1000000
+                                          },
+                                   'prefect_subflow_args': None,
+                                   'prefect_task_args': {
+                                                         'name':"phased_cnv_no_subflow",
+                                                         'description': 'Экстракция CNV определённого региона',
+                                                         'timeout_seconds': 1200,
+                                                         'tags': ['nanopore', 'cnv_extraction', 'cpu', 'short']                                                        
+                                                        },
+                                    'prefect_tag_limit':{},
+                                    'handler': 'src/tasks/phased_cnv_extraction.py:phased_cnv_no_subflow',
+                                    'arg_factory': 'src/tasks/cnv_calling_no_subflow.py:phased_cnv_arg_factory'
+                                  },
+                      'star_alleles':{
+                                   'args':{
+                                           'gene':'cyp2d6',
+                                           'control_gene':'vdr',
+                                           'genome':'grc38',
+                                           'data_type': 'wgs'
+                                          },
+                                   'prefect_subflow_args': None,
+                                   'prefect_task_args': {
+                                                         'name':"star_alleles",
+                                                         'description': 'Экстракция CNV определённого региона',
+                                                         'timeout_seconds': 1200,
+                                                         'tags': ['nanopore', 'star_alleles', 'cpu', 'short']                                                        
+                                                        },
+                                    'prefect_tag_limit':{},
+                                    'handler': 'src/tasks/star_alleles.py:star_alleles',
+                                    'arg_factory': 'src/tasks/star_alleles.py:star_alleles_arg_factory'
+                                  },
                       'blank':{
                                    'args':{'threads_per_cnv_calling':THREADS_PER_CNV_CALLING},
                                    'prefect_subflow_args': None,

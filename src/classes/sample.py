@@ -206,6 +206,8 @@ class Sample:
     bam_qc:bool = field(default=False)
     sv:Set[Path] = field(default_factory=set)
     cnv:Set[Path] = field(default_factory=set)
+    cnv_copies:Dict[str, str] = field(default_factory=dict)
+    star_alleles:Dict[str, str] = field(default_factory=dict)
     
 
     @staticmethod
@@ -307,6 +309,8 @@ class Sample:
                         bam_qc=get_bool_val(data.get('bam_qc')),
                         sv=get_set_of_paths(data.get('sv')),
                         cnv=get_set_of_paths(data.get('cnv')),
+                        cnv_copies=split_str_to_dict(data.get('cnv_copies')),
+                        star_alleles=split_str_to_dict(data.get('star_alleles')),
                         errors=split_str_to_dict(data.get('errors')),
                         processed_tasks=get_list_of_strings(data.get('processed_tasks')),
                         task_statuses=split_str_to_dict(data.get('task_statuses')),
@@ -357,6 +361,8 @@ class Sample:
                     obj_dict[k] = '; '.join([str(x) for x in v])
                 case dict():
                     obj_dict[k] = '; '.join([f"{x}: {y}" for x,y in v.items()])
+                case str():
+                    obj_dict[k] = v
                 case _:
                     pass
         return obj_dict
