@@ -210,7 +210,7 @@ PRE_STAGE_DEPENDIES = {
                                                         },
                                     'prefect_tag_limit':{},
                                     'handler': 'src/tasks/phased_cnv_extraction.py:phased_cnv_no_subflow',
-                                    'arg_factory': 'src/tasks/cnv_calling_no_subflow.py:phased_cnv_arg_factory'
+                                    'arg_factory': 'src/tasks/phased_cnv_extraction.py:phased_cnv_arg_factory'
                                   },
                       'star_alleles':{
                                    'args':{
