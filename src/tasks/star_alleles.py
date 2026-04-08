@@ -54,7 +54,7 @@ async def star_alleles_arg_factory(
             # Пробуем найти SV & SNP
             task_name = await create_prefect_run_name(
                                                 type='Task',
-                                                name=f"Phased CNV extraction: batch {vcf_id}",
+                                                name=f"Star alleles generation: batch {vcf_id}",
                                                 parent_id=parent_flow_id,
                                                 sample_id=sample.id
                                                )
