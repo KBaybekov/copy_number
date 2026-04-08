@@ -120,7 +120,7 @@ async def star_alleles(
                 
                 print("Starting Stargazer...")
                 # Формируем shell-команду
-                cmd = [f"python3 {stargazer_d} --vcf-file {vcf}  --target-gene {gene} --genome {genome} --data-type {data_type} --control-gene {control_gene} --output-dir ./"]
+                cmd = [f"python3 {stargazer_d} --vcf-file {vcf}  --target-gene {gene} --genome {genome} --data-type {data_type} --control-gene {control_gene} --output-dir {res_dir}"]
                 # Добавляем подготовительные и постпроцессинговые команды
                 shell_cmds:List[str] = cmd
                 
