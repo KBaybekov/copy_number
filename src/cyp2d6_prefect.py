@@ -45,7 +45,7 @@ async def main_pipeline(
     :param sample_data_csv: Опциональный путь к CSV результатам предыдущих запусков.
     """
     #УДАЛИТЬ, ВРЕМЕННОЕ РЕШЕНИЕ ДЛЯ ЗАПУСКА NEXTFLOW В ЭТОМ ЖЕ КОНТЕЙНЕРЕ
-    prep_cmds = [
+    """prep_cmds = [
                     'cat /etc/apt/sources.list',
                     '''echo "deb http://debian.org trixie main
                         deb http://debian.org trixie-security main
@@ -65,7 +65,7 @@ async def main_pipeline(
                     # Запускаем процесс
                     process = await shell_op.atrigger()
                     # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-                    await process.await_for_completion()
+                    await process.await_for_completion()"""
 
     logger = await get_logger()
 
