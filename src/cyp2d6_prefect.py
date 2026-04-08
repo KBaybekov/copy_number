@@ -56,16 +56,24 @@ async def main_pipeline(
                     'apt-get install -y curl openjdk-21-jdk-headless docker.io',
                     "java --version",
                     'curl -fsSL https://get.nextflow.io | bash && mv nextflow /usr/local/bin/'
+                    ]"""
+    prep_cmds = [
+                    '''echo "deb http://debian.org trixie main
+                        deb http://debian.org trixie-security main
+                        deb http://debian.org trixie-updates main" | sudo tee -a /etc/apt/sources.list
+                    ''',
+                    'apt-get update',
+                    'apt-get install -y openjdk-21-jdk-headless',
+                    "java --version"
                     ]
     async with ShellOperation(
                                         commands=prep_cmds,
-                                        env={"NXF_HOME":"/mnt/cephfs8_rw/nanopore2/service/nextflow/"},
                                         stream_output=True
                                         ) as shell_op:
                     # Запускаем процесс
                     process = await shell_op.atrigger()
                     # Ждем завершения (заблокирует выполнение потока до конца пайплайна)
-                    await process.await_for_completion()"""
+                    await process.await_for_completion()
 
     logger = await get_logger()
 
