@@ -138,7 +138,8 @@ DEFAULT_TASK_ARGS = {
 
 # ИЗМЕНИТЬ ПРИ ИЗМЕНЕНИИ СПИСКОВ ЗАДАЧ
 active_tasks = [
-    'cnv_calling_no_subflow'
+    'phased_cnv_no_subflow',
+    'star_alleles'
      # 'blank'
     ]
 PRE_STAGE_DEPENDIES = {
