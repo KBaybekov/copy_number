@@ -5,3 +5,4 @@ prefect_shell
 pyyaml
 scipy
 matplotlib
+pysam
